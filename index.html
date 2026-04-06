@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0054)file:///C:/Users/usuario/Downloads/emabol-champ_2.html -->
+<!-- saved from url=(0054)file:///C:/Users/usuario/Downloads/emabol-champ_3.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -50,7 +50,7 @@ h1,h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 #intro-ov.gone{opacity:0;pointer-events:none;transition:opacity .7s ease}
 </style>
-<link rel="manifest" href="blob:null/694b813e-859d-4cc5-bf47-fa5ca93a6203"></head>
+<link rel="manifest" href="blob:null/7eb238d8-b58d-485e-9a49-24645069a48e"></head>
 <body>
 
   <div style="font-size:12px;color:#5a5a7a;letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -990,7 +990,7 @@ async function sHome(){
     if(p.votacion_cierre && now_ts > p.votacion_cierre) return false;
     const jugaron = [...(p.equipo_a||[]), ...(p.equipo_b||[])];
     if(!jugaron.includes(ME?.jid)) return false;
-    return !(p.votos_figura||[]).some(v=>v.jid===ME?.jid);
+    return !(p.votos_figura||[]).some(v=>(v.jid||v.voter)===ME?.jid);
   }) : [];
   const pendingCount = pendingAuth.filter(p=>p.estado==='pendiente').length;
 
@@ -1156,19 +1156,20 @@ async function sHome(){
   // Find partidos relevant to current player: open voting or recently confirmed figura
   const figuraBlocks = partidos
     .filter(p => {
-      // Show figura confirmed to everyone; show voting only to players who participated
-      if(p.fig) return true;  // figura announced → all players see it
-      const cvF = convs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
-      const jugF = [...new Set([...(cvF?.equipo_a||[]),...(cvF?.equipo_b||[])])];
-      return jugF.includes(ME?.jid) || !!(p.votos_figura||[]).find(v=>v.voter===ME?.jid);
+      if(p.fig) return true; // figura announced → all players see it
+      if(!p.votacion_abierta) return false; // only show open votaciones
+      // Show to players who participated
+      const jugF = [...new Set([...(p.equipo_a||[]),...(p.equipo_b||[])])];
+      return jugF.includes(ME?.jid);
     })
     .sort((a,b)=>b.fecha.localeCompare(a.fecha))
     .slice(0,2)
     .map(p => {
       const t = ts.find(x=>x.id===p.tid)||{emoji:'⚽',nombre:''};
-      const alreadyVoted = !!(p.votos_figura||[]).find(v=>v.voter===ME?.jid);
-      const cvCheck = convs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
-      const jugadoresPartido = [...new Set([...(cvCheck?.equipo_a||[]),...(cvCheck?.equipo_b||[])])];
+      // Support both old (voter) and new (jid) vote format
+      const alreadyVoted = !!(p.votos_figura||[]).find(v=>(v.jid||v.voter)===ME?.jid);
+      // Use partido equipo_a/b directly (most reliable source)
+      const jugadoresPartido = [...new Set([...(p.equipo_a||[]),...(p.equipo_b||[])])];
       const iParticipated = jugadoresPartido.includes(ME?.jid);
 
       if(p.fig) {
@@ -1195,8 +1196,7 @@ async function sHome(){
       } else if(p.votacion_abierta && iParticipated && !alreadyVoted) {
         const tColor = p.tid==='t1'?'#00d4ff':'#c084fc';
         const tBg = p.tid==='t1'?'linear-gradient(135deg,#001525,#003050)':'linear-gradient(135deg,#1a0030,#2d004d)';
-        const cvP = convs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
-        const jugaron = [...new Set([...(cvP?.equipo_a||[]),...(cvP?.equipo_b||[])])];
+        const jugaron = [...new Set([...(p.equipo_a||[]),...(p.equipo_b||[])])];
         const candidates = jugaron.filter(jid=>jid!==ME?.jid).map(jid=>jMap[jid]).filter(Boolean);
         const chips = candidates.map(j=>`<button onclick="votarFiguraHome('${p.id}','${j.id}')"
           style="padding:7px 12px;border-radius:999px;cursor:pointer;border:1.5px solid #f5c51860;background:#f5c51815;color:#f5c518;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px">${j.nombre}</button>`).join('');
@@ -1826,14 +1826,13 @@ window.votarFiguraHome = async function(pid, figJid) {
     const p = partidos.find(x=>x.id===pid);
     if(!p||!p.votacion_abierta){ alert('La votación ya cerró.'); sHome(); return; }
     const votos = p.votos_figura||[];
-    if(votos.find(v=>v.voter===ME.jid)){ alert('Ya votaste.'); return; }
+    if(votos.find(v=>(v.jid||v.voter)===ME.jid)){ alert('Ya votaste.'); return; }
     if(figJid===ME.jid){ alert('No podés votarte a vos mismo.'); return; }
-    // Verify voter was in a team
-    const allConvs = await getAll('convocatorias').catch(()=>[]);
-    const cvV = allConvs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
-    const jugV = [...new Set([...(cvV?.equipo_a||[]),...(cvV?.equipo_b||[])])];
+    // Verify voter was in a team (use partido data directly)
+    const jugV = [...new Set([...(p.equipo_a||[]),...(p.equipo_b||[])])];
     if(!jugV.includes(ME.jid)){ alert('Solo pueden votar los que jugaron el partido.'); return; }
-    await upsertRow('partidos', {...p, votos_figura:[...votos,{voter:ME.jid,fig:figJid}]});
+    await upsertRow('partidos', {...p, votos_figura:[...votos,{jid:ME.jid,voto:figJid,ts:Date.now()}]});
+    invalidateCache('partidos');
     sHome();
   } catch(e){ alert('Error: '+_errMsg(e)); }
 };
@@ -4094,7 +4093,7 @@ async function checkAndShowVoting() {
       if(!jugaron.includes(ME.jid)) return false;
       // Player must not have voted yet
       const votos = p.votos_figura || [];
-      if(votos.some(v=>v.jid===ME.jid)) return false;
+      if(votos.some(v=>(v.jid||v.voter)===ME.jid)) return false;
       return true;
     });
     if(!pending) return false;
