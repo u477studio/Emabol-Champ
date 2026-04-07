@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0050)file:///C:/Users/ema/Downloads/emabol-champ_1.html -->
+<!-- saved from url=(0050)file:///C:/Users/ema/Downloads/emabol-champ_2.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -50,7 +50,7 @@ h1,h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 #intro-ov.gone{opacity:0;pointer-events:none;transition:opacity .7s ease}
 </style>
-<link rel="manifest" href="blob:null/919340f3-e68e-44af-8c93-247909f58468"></head>
+<link rel="manifest" href="blob:null/71b7c80b-8c93-4bc6-aaaf-68f62a7630d5"></head>
 <body>
 
   <div style="font-size:12px;color:#5a5a7a;letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -3207,6 +3207,7 @@ window.sSetupSQL = function() {
     "alter table torneos add column if not exists ranking_tipo text not null default 'individual';",
     "alter table torneos add column if not exists app_estado text not null default 'productivo';",
     "alter table partidos add column if not exists votacion_cierre bigint;",
+    "alter table jugadores add column if not exists admin boolean not null default false;",
     "alter table jugadores add column if not exists auth_user_id text;",
     "alter table jugadores add column if not exists email text;",
     "create table if not exists auth_pending (id text primary key, email text not null, nombre_solicitado text, created_at bigint not null default 0, estado text not null default 'pendiente');",
