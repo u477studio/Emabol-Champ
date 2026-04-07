@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0054)file:///C:/Users/usuario/Downloads/emabol-champ_3.html -->
+<!-- saved from url=(0048)file:///C:/Users/ema/Downloads/emabol-champ.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -50,7 +50,7 @@ h1,h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 #intro-ov.gone{opacity:0;pointer-events:none;transition:opacity .7s ease}
 </style>
-<link rel="manifest" href="blob:null/7eb238d8-b58d-485e-9a49-24645069a48e"></head>
+<link rel="manifest" href="blob:null/2b017582-75cb-463c-9d4c-79c2c4932b77"></head>
 <body>
 
   <div style="font-size:12px;color:#5a5a7a;letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -67,10 +67,10 @@ h1,h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1
   <div style="width:100%;max-width:340px">
     <label class="lbl">EMAIL</label>
     <input class="inp" id="lu" type="email" placeholder="tu@email.com" style="margin-bottom:11px" onkeydown="if(event.key===&#39;Enter&#39;)document.getElementById(&#39;lp&#39;).focus()">
-    <label class="lbl">CONTRASEÑA</label>
+    <label class="lbl">PASSWORD</label>
     <input class="inp" id="lp" type="password" placeholder="••••••••" style="margin-bottom:16px" onkeydown="if(event.key===&#39;Enter&#39;)doLogin()">
     <p id="le" style="color:#ff4444;font-size:12px;text-align:center;margin-bottom:10px;display:none"></p>
-    <button class="btn btn-gold" onclick="doLogin()" style="font-size:15px;letter-spacing:2px">INGRESAR</button>
+    <button class="btn btn-gold" onclick="doLogin()" style="font-size:15px;letter-spacing:2px">SIGN IN</button>
     <p style="font-size:11px;color:#5a5a7a;text-align:center;margin-top:14px">
       <button onclick="go(&#39;/forgot&#39;)" style="background:none;border:none;color:#a0a0b8;font-size:11px;cursor:pointer;text-decoration:underline">¿Olvidaste tu contraseña?</button>
     </p>
@@ -78,11 +78,11 @@ h1,h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1
       ¿Primera vez? <button onclick="go(&#39;/register&#39;)" style="background:none;border:none;color:#f5c518;font-size:11px;cursor:pointer;text-decoration:underline">Creá tu cuenta</button>
     </p>
     <div style="display:flex;justify-content:center;gap:10px;margin-top:20px">
-      <button onclick="switchLang(&#39;es&#39;)" style="padding:10px 20px;border-radius:10px;border:2px solid #f5c518;background:#f5c51820;color:#f5c518;font-family:&#39;Barlow Condensed&#39;,sans-serif;font-weight:900;font-size:13px;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:4px">
+      <button onclick="switchLang(&#39;es&#39;)" style="padding:10px 20px;border-radius:10px;border:2px solid #3a3a5e;background:transparent;color:#5a5a7a;font-family:&#39;Barlow Condensed&#39;,sans-serif;font-weight:900;font-size:13px;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:4px">
         <img src="./index_files/es.png" width="28" height="20" style="border-radius:3px;display:block" alt="ES">
         ES
       </button>
-      <button onclick="switchLang(&#39;en&#39;)" style="padding:10px 20px;border-radius:10px;border:2px solid #3a3a5e;background:transparent;color:#5a5a7a;font-family:&#39;Barlow Condensed&#39;,sans-serif;font-weight:900;font-size:13px;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:4px">
+      <button onclick="switchLang(&#39;en&#39;)" style="padding:10px 20px;border-radius:10px;border:2px solid #f5c518;background:#f5c51820;color:#f5c518;font-family:&#39;Barlow Condensed&#39;,sans-serif;font-weight:900;font-size:13px;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;gap:4px">
         <img src="./index_files/us.png" width="28" height="20" style="border-radius:3px;display:block" alt="EN">
         EN
       </button>
@@ -393,7 +393,7 @@ async function loginAsync(u, p) {
     await restoreTorneo().catch(()=>{});
     return {ok:true};
   } catch(e) {
-    // Fallback: try legacy login (nombre+apellido) for unmigrated players
+    console.error('Login error:', e);
     return {ok:false, msg: e.message || 'Error al iniciar sesión'};
   }
 }
@@ -414,13 +414,15 @@ async function seedData() {
     }
   } catch(e) { console.warn('clear check error', e.message); }
 
-  // ── Torneos: upsert only if missing ──────────────────────────────────────
+  // ── Torneos: upsert only if missing + cleanup t2 ────────────────────────
   try {
     const existingTs = await _req('GET', '/torneos?select=id').catch(()=>[]);
     const tids = (existingTs||[]).map(t=>t.id);
     if(!tids.includes('t1'))
       await upsertRow('torneos', {id:'t1',nombre:'EMABOL GLORIAS Y LEYENDAS',dia:'Miércoles',ini:'18/03/2026',fin:'03/06/2026',emoji:'⚽'});
-    // t2 removed — merged into t1
+    // t2 removed — delete if it crept back in
+    if(tids.includes('t2'))
+      await _req('DELETE', '/torneos?id=eq.t2').catch(()=>{});
 
   } catch(e) { console.warn('torneo seed error', e.message); }
 
@@ -3854,7 +3856,13 @@ async function authSignIn(email, password) {
     body: JSON.stringify({email, password})
   });
   const data = await res.json();
-  if(!res.ok) throw new Error(data.msg || data.error_description || 'Email o contraseña incorrectos');
+  if(!res.ok) {
+    const errMsg = data.message || data.msg || data.error_description || 'Email o contraseña incorrectos';
+    if(errMsg.toLowerCase().includes('confirm') || errMsg.toLowerCase().includes('not confirmed')) {
+      throw new Error('Debés confirmar tu email antes de ingresar. Revisá tu casilla de correo.');
+    }
+    throw new Error(errMsg);
+  }
   return data; // { access_token, user }
 }
 
