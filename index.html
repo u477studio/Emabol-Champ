@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0050)file:///C:/Users/ema/Downloads/emabol-champ_2.html -->
+<!-- saved from url=(0050)file:///C:/Users/ema/Downloads/emabol-champ_3.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -50,7 +50,7 @@ h1,h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 #intro-ov.gone{opacity:0;pointer-events:none;transition:opacity .7s ease}
 </style>
-<link rel="manifest" href="blob:null/71b7c80b-8c93-4bc6-aaaf-68f62a7630d5"></head>
+<link rel="manifest" href="blob:null/874884e6-44bc-4f85-9772-1f0f537ee26c"></head>
 <body>
 
   <div style="font-size:12px;color:#5a5a7a;letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1155,14 +1155,12 @@ async function sHome(){
   const jMap = {};
   js.forEach(j=>jMap[j.id]=j);
 
-  // Find partidos relevant to current player: open voting or recently confirmed figura
+  // Show last 2 partidos that have figura announced OR open voting
   const figuraBlocks = partidos
     .filter(p => {
-      if(p.fig) return true; // figura announced → all players see it
-      if(!p.votacion_abierta) return false; // only show open votaciones
-      // Show to players who participated
-      const jugF = [...new Set([...(p.equipo_a||[]),...(p.equipo_b||[])])];
-      return jugF.includes(ME?.jid);
+      if(p.fig) return true; // figura announced → show to everyone
+      if(p.votacion_abierta) return true; // open voting → show to everyone
+      return false;
     })
     .sort((a,b)=>b.fecha.localeCompare(a.fecha))
     .slice(0,2)
@@ -1302,7 +1300,7 @@ async function sHome(){
         +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
         +'<p style="font-size:10px;color:#f5c518;font-weight:800;letter-spacing:2px">📢 NOVEDADES</p>'+editBtn
         +'</div>'
-        +'<p id="home-nov-text" style="font-size:13px;color:var(--muted);line-height:1.7">'+novedadesHtml+'</p>'
+        +'<p id="home-nov-text" style="font-size:16px;color:#c8c8d8;line-height:1.8;font-weight:500">'+novedadesHtml+'</p>'
         +'</div>';
     } else if(ME&&ME.admin){
       novBlock='<div style="margin-bottom:16px"><button onclick="editarNovedades()" style="width:100%;background:#f5c51810;border:1px dashed #f5c51840;color:#f5c518;border-radius:12px;padding:12px;cursor:pointer;font-size:12px;font-weight:700">📢 + Agregar novedades</button></div>';
@@ -2598,7 +2596,8 @@ async function sHistorial(){
 // Old match (cargar resultado) — kept for admin
 let MS={};
 async function sMatch() {
-  if(!ME?.admin){ go('/home'); return; }
+  // Players get their own match history view
+  if(!ME?.admin){ await sMatchJugador(); return; }
   setContent(loading('Cargando partidos...'));
 
   const [ts, allJs, convs, partidos] = await Promise.all([
@@ -4181,6 +4180,113 @@ window.emitirVoto = async function(pid, votadoJid) {
     setTimeout(()=>render(), 1500);
   } catch(e) { alert('Error al votar: ' + _errMsg(e)); }
 };
+
+
+// ═══════ sMatchJugador — player's match history ═══════
+async function sMatchJugador() {
+  setContent(loading(tr('loading')));
+  const [ts, partidos, convs, js] = await Promise.all([
+    getAll('torneos').catch(()=>[]),
+    getAll('partidos').catch(()=>[]),
+    getAll('convocatorias').catch(()=>[]),
+    getJugadores(true).catch(()=>[])
+  ]);
+  const jMap = {}; js.forEach(j=>jMap[j.id]=j);
+  const torneo = CURRENT_TORNEO || ts.find(t=>t.estado!=='archivado');
+  if(!torneo) { setContent('<p style="color:#5a5a7a;text-align:center;padding:40px">No hay torneo activo.</p>' + renderNav()); return; }
+  const color = torneo.color || '#f5c518';
+
+  // Get all partidos for this torneo sorted by date desc
+  const tPartidos = partidos
+    .filter(p=>p.tid===torneo.id)
+    .sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+  // Get upcoming convocatorias (no partido yet)
+  const today = new Date(); today.setHours(0,0,0,0);
+  const upcoming = convs
+    .filter(cv=>{
+      if(cv.tid!==torneo.id) return false;
+      if(cv.estado==='finalizado') return false;
+      const d = parseFecha(cv.fecha);
+      return d && d >= today;
+    })
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha))
+    .filter(cv=>!tPartidos.some(p=>p.fecha===cv.fecha));
+
+  const getPlayerResult = (p) => {
+    const ea = p.equipo_a||[], eb = p.equipo_b||[];
+    const jugaron = [...ea,...eb];
+    const jid = ME.jid;
+    if(!jugaron.includes(jid)) return {code:'AUS', label:'AUSENTE', color:'#5a5a7a'};
+    const gan = p.gan;
+    const isFig = p.fig === jid;
+    if(gan==='EMPATE' || gan===tr('draw')) return {code:'EMP', label:'EMPATE', color:'#f5c518', fig:isFig};
+    const inA = ea.includes(jid);
+    const ganadorA = gan==='a';
+    const gano = (inA && ganadorA) || (!inA && !ganadorA);
+    if(gano) return {code:'GAN', label:'GANÓ', color:'#00ff88', fig:isFig};
+    return {code:'DER', label:'DERROTA', color:'#ff4444', fig:isFig};
+  };
+
+  // Upcoming cards
+  const upcomingCards = upcoming.map(cv=>{
+    const d = parseFecha(cv.fecha);
+    const dias = diasHasta(cv.fecha);
+    const myEst = (cv.convocados_estado||[]).find(x=>x.jid===ME.jid)?.estado;
+    const estBadge = cv.estado==='confirmado'
+      ? `<span style="color:#00ff88;font-size:10px;font-weight:900">✓ CONFIRMADO</span>`
+      : myEst==='convocado'
+        ? `<span style="color:${color};font-size:10px;font-weight:900">✋ APUNTADO</span>`
+        : `<span style="color:#5a5a7a;font-size:10px">Sin confirmar</span>`;
+    return `<div style="background:#0d0d1a;border:1px solid ${color}40;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+      <div style="text-align:center;min-width:44px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:${color}">${d?d.getDate():'-'}</div>
+        <div style="font-size:9px;color:#5a5a7a;text-transform:uppercase">${d?['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]:''}</div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:12px;color:#a0a0b8">${dias===0?'HOY':dias===1?'MAÑANA':'En '+dias+' días'}</div>
+        <div style="font-size:11px;color:#5a5a7a">${torneo.emoji} ${torneo.nombre}</div>
+      </div>
+      ${estBadge}
+    </div>`;
+  }).join('');
+
+  // Played partido cards
+  const partidoCards = tPartidos.map(p=>{
+    const res = getPlayerResult(p);
+    const d = parseFecha(p.fecha);
+    const figJ = p.fig ? jMap[p.fig] : null;
+    return `<div style="background:#0d0d1a;border:1px solid #2a2a3e;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+      <div style="text-align:center;min-width:44px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:${res.color}">${d?d.getDate():'-'}</div>
+        <div style="font-size:9px;color:#5a5a7a;text-transform:uppercase">${d?['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]:''}</div>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;color:${res.color};background:${res.color}18;padding:3px 8px;border-radius:6px">${res.code}</span>
+          ${res.fig ? '<span style="font-size:14px" title="Figura del partido">⭐</span>' : ''}
+        </div>
+        ${figJ ? `<div style="font-size:10px;color:#5a5a7a;margin-top:3px">⭐ Figura: ${figJ.nombre}</div>` : ''}
+      </div>
+      <div style="text-align:right;font-size:11px;color:#5a5a7a">${p.gan==='a'?'A ganó':p.gan==='b'?'B ganó':p.gan||''}</div>
+    </div>`;
+  }).join('');
+
+  setContent(`<div class="screen up" style="padding:44px 15px 90px">
+    <div style="margin-bottom:16px">
+      <p style="font-size:10px;color:${color};font-weight:800;letter-spacing:3px">⚽ ${tr('matches')}</p>
+      <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:22px">${torneo.nombre}</h2>
+    </div>
+    ${upcoming.length ? `
+      <p style="font-size:10px;font-weight:900;color:#5a5a7a;letter-spacing:2px;margin-bottom:8px">PRÓXIMOS</p>
+      ${upcomingCards}
+    ` : ''}
+    ${tPartidos.length ? `
+      <p style="font-size:10px;font-weight:900;color:#5a5a7a;letter-spacing:2px;margin:12px 0 8px">JUGADOS</p>
+      ${partidoCards}
+    ` : '<p style="color:#5a5a7a;text-align:center;padding:20px">No hay partidos jugados aún.</p>'}
+  </div>${renderNav()}`);
+}
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 (async()=>{
