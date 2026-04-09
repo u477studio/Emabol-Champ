@@ -15,96 +15,230 @@
 <title>⚽ Emabol Champ</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-*,*::before,*::after{margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#04040e;
-  --bg2:#07071a;
-  --card:#0a0a1f;
-  --surf:#0f0f28;
-  --surf2:#141435;
+  --bg:#03030d;
+  --bg2:#06061a;
+  --card:#080820;
+  --surf:#0c0c28;
+  --surf2:#111135;
   --gold:#ffd700;
   --gold2:#c9a800;
-  --gold3:#ffec6e;
+  --gold3:#fff0a0;
+  --gold-glow:rgba(255,215,0,0.25);
+  --gold-glow2:rgba(255,215,0,0.1);
   --green:#00e676;
   --blue:#00b4ff;
-  --purple:#7c3aed;
+  --blue2:#0066ff;
+  --purple:#8b5cf6;
   --red:#ff3d3d;
   --txt:#ffffff;
-  --muted:#b0b0cc;
-  --dim:#606080;
-  --bdr:#1e1e45;
-  --bdr2:#2a2a5e;
-  --glow:rgba(255,215,0,0.15);
-  --glow2:rgba(255,215,0,0.08);
+  --muted:#c0c0d8;
+  --dim:#505070;
+  --bdr:#1a1a40;
+  --bdr2:#252555;
+  --bdr3:#303068;
 }
+
 html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
-#app{height:100dvh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;position:relative;background:var(--bg);background-image:radial-gradient(ellipse at 20% 0%,#0d0d35 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,#0a0a2e 0%,transparent 60%)}
+
+/* ── App container with nebula background ── */
+#app{
+  height:100dvh;max-width:480px;margin:0 auto;
+  display:flex;flex-direction:column;position:relative;
+  background:var(--bg);
+  background-image:
+    radial-gradient(ellipse 60% 40% at 15% 5%,rgba(60,0,120,0.35),transparent),
+    radial-gradient(ellipse 50% 35% at 85% 90%,rgba(0,30,100,0.35),transparent),
+    radial-gradient(ellipse 40% 30% at 50% 50%,rgba(20,0,60,0.2),transparent);
+}
+
+/* ── Screen ── */
 .screen{flex:1;overflow-y:auto;padding-bottom:90px}
-h1,h2{font-family:'Bebas Neue',sans-serif;letter-spacing:2px}
+
+/* ── Typography ── */
+h1,h2{font-family:'Bebas Neue',sans-serif;letter-spacing:3px}
 h3,h4{font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1px}
 
 /* ── Buttons ── */
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:2px;cursor:pointer;border:none;width:100%;transition:opacity .15s,transform .1s;text-transform:uppercase}
-.btn:active{opacity:.85;transform:scale(.98)}
-.btn-gold{background:linear-gradient(135deg,#ffd700 0%,#c9a800 50%,#ffd700 100%);color:#000;box-shadow:0 4px 20px rgba(255,215,0,0.3),inset 0 1px 0 rgba(255,255,255,0.2)}
-.btn-gold:hover{box-shadow:0 4px 28px rgba(255,215,0,0.5)}
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 20px;border-radius:8px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;
+  letter-spacing:2.5px;cursor:pointer;border:none;width:100%;
+  transition:opacity .15s,transform .1s,box-shadow .2s;
+  text-transform:uppercase
+}
+.btn:active{opacity:.85;transform:scale(.97)}
+.btn-gold{
+  background:linear-gradient(135deg,#ffe033 0%,#c9a800 45%,#ffe033 100%);
+  color:#000;font-weight:900;
+  box-shadow:0 4px 24px rgba(255,215,0,0.4),0 1px 0 rgba(255,255,255,0.3) inset;
+  text-shadow:0 1px 0 rgba(255,255,255,0.3)
+}
+.btn-gold:hover{box-shadow:0 6px 32px rgba(255,215,0,0.6)}
 .btn-out{background:transparent;border:1.5px solid var(--gold);color:var(--gold)}
 .btn-red{background:rgba(255,61,61,.1);border:1.5px solid var(--red);color:var(--red)}
-.btn-dim{background:transparent;color:var(--dim);border:1px solid var(--bdr)}
-.btn-blue{background:linear-gradient(135deg,#0047ab,#0066cc);color:var(--txt);border:1px solid #0077ff40}
+.btn-dim{background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--bdr2)}
+.btn-blue{background:linear-gradient(135deg,#003388,#0055cc);color:var(--txt);border:1px solid rgba(0,120,255,0.3)}
 
 /* ── Inputs ── */
-.inp{width:100%;padding:14px 16px;background:var(--surf);border:1px solid var(--bdr2);border-radius:8px;color:var(--txt);font-size:15px;font-family:'Barlow',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s}
-.inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--glow2)}
-.lbl{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:3px;color:var(--gold);margin-bottom:8px;display:block;text-transform:uppercase}
+.inp{
+  width:100%;padding:14px 16px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--bdr2);border-radius:8px;
+  color:var(--txt);font-size:15px;font-family:'Barlow',sans-serif;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+  box-sizing:border-box
+}
+.inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,215,0,0.12)}
+.inp::placeholder{color:var(--dim)}
+.lbl{
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  font-size:10px;letter-spacing:3px;color:var(--gold);
+  margin-bottom:7px;display:block;text-transform:uppercase
+}
 
-/* ── Nav ── */
-.nav{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,#07071a,#04040e);border-top:1px solid #ffd70030;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,6px)}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;position:relative;cursor:pointer;border:none;background:none;color:var(--dim);font-size:8px;font-weight:900;letter-spacing:1.5px;gap:4px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;transition:color .2s}
+/* ── Navigation ── */
+.nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:linear-gradient(180deg,rgba(6,6,26,0.97),rgba(3,3,13,0.99));
+  border-top:1px solid rgba(255,215,0,0.15);
+  backdrop-filter:blur(10px);
+  display:flex;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom,8px)
+}
+.ni{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:10px 4px 8px;position:relative;cursor:pointer;
+  border:none;background:none;color:var(--dim);
+  font-size:8px;font-weight:900;letter-spacing:1.5px;gap:4px;
+  font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+  transition:color .2s
+}
 .ni.on{color:var(--gold)}
-.ni.on .ni-ico{filter:drop-shadow(0 0 6px rgba(255,215,0,0.6))}
+.ni.on .ni-ico{filter:drop-shadow(0 0 8px rgba(255,215,0,0.7))}
 .ni-ico{font-size:22px;line-height:1}
-.bk{background:none;border:none;cursor:pointer;color:var(--gold);font-weight:900;font-size:13px;padding:8px 0;display:flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase}
+
+/* ── Back button ── */
+.bk{
+  background:none;border:none;cursor:pointer;
+  color:var(--gold);font-weight:900;font-size:13px;
+  padding:8px 0;display:flex;align-items:center;gap:6px;
+  font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase
+}
 
 /* ── Cards ── */
-.card{background:linear-gradient(135deg,var(--card),var(--surf));border:1px solid var(--bdr2);border-radius:14px;padding:16px}
-.card-gold{background:linear-gradient(135deg,#0a0a1f,#111130);border:1.5px solid var(--gold2);box-shadow:0 0 20px var(--glow2),inset 0 1px 0 rgba(255,215,0,0.05)}
-.card-stat{background:var(--surf2);border-radius:8px;padding:8px 12px;text-align:center}
+.card{
+  background:linear-gradient(145deg,var(--card),var(--surf));
+  border:1px solid var(--bdr2);border-radius:14px;padding:16px
+}
+.card-gold{
+  background:linear-gradient(145deg,#080820,#0f0f30);
+  border:1.5px solid var(--gold2);
+  box-shadow:0 0 24px rgba(255,215,0,0.12),0 0 1px rgba(255,215,0,0.4) inset
+}
+.card-stat{background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px;text-align:center}
 
-/* ── Tags & Badges ── */
-.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:2px;text-transform:uppercase}
-.badge-gold{background:rgba(255,215,0,0.15);color:var(--gold);border:1px solid rgba(255,215,0,0.3)}
-.badge-green{background:rgba(0,230,118,0.12);color:var(--green);border:1px solid rgba(0,230,118,0.3)}
-.badge-red{background:rgba(255,61,61,0.12);color:var(--red);border:1px solid rgba(255,61,61,0.3)}
-.badge-blue{background:rgba(0,180,255,0.12);color:var(--blue);border:1px solid rgba(0,180,255,0.3)}
-.badge-dim{background:rgba(96,96,128,0.15);color:var(--dim);border:1px solid rgba(96,96,128,0.3)}
+/* ── FIFA Player Card ── */
+.fifa-card{
+  background:linear-gradient(160deg,#0d0d2e 0%,#1a1a45 40%,#0a0a25 100%);
+  border:1.5px solid var(--gold2);
+  border-radius:10px;
+  box-shadow:0 0 20px rgba(255,215,0,0.15),0 4px 20px rgba(0,0,0,0.5);
+  position:relative;overflow:hidden;
+  padding:10px 8px 10px;
+  text-align:center;cursor:pointer;
+  transition:transform .15s,box-shadow .15s
+}
+.fifa-card:hover{transform:translateY(-2px);box-shadow:0 0 30px rgba(255,215,0,0.25)}
+.fifa-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)
+}
+.fifa-card-rating{
+  font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);
+  line-height:1;text-shadow:0 0 15px rgba(255,215,0,0.5)
+}
+.fifa-card-pos{
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase
+}
+.fifa-card-photo{
+  width:60px;height:60px;border-radius:50%;
+  border:2px solid rgba(255,215,0,0.3);
+  background:linear-gradient(135deg,rgba(255,215,0,0.1),transparent);
+  overflow:hidden;margin:6px auto;
+  display:flex;align-items:center;justify-content:center
+}
+.fifa-card-name{
+  font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;
+  color:var(--txt);margin-top:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
 
-/* ── Section headers ── */
-.sec-title{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.sec-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--bdr2),transparent)}
+/* ── Badges ── */
+.badge{
+  display:inline-flex;align-items:center;
+  padding:3px 9px;border-radius:4px;
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  font-size:10px;letter-spacing:2px;text-transform:uppercase
+}
+.badge-gold{background:rgba(255,215,0,0.12);color:var(--gold);border:1px solid rgba(255,215,0,0.25)}
+.badge-green{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.25)}
+.badge-red{background:rgba(255,61,61,0.1);color:var(--red);border:1px solid rgba(255,61,61,0.25)}
+.badge-blue{background:rgba(0,180,255,0.1);color:var(--blue);border:1px solid rgba(0,180,255,0.25)}
+.badge-dim{background:rgba(80,80,112,0.15);color:var(--dim);border:1px solid rgba(80,80,112,0.25)}
 
-/* ── Dividers ── */
+/* ── Section title ── */
+.sec-title{
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;
+  font-size:10px;letter-spacing:4px;color:var(--gold);
+  text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px
+}
+.sec-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--bdr3),transparent)}
+
+/* ── Divider ── */
 .divider{height:1px;background:linear-gradient(90deg,transparent,var(--bdr2),transparent);margin:16px 0}
 
-/* ── FIFA-style rating badge ── */
-.rating-badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:62px;background:linear-gradient(160deg,#1a1a3e,#0a0a20);border:1.5px solid var(--gold2);border-radius:8px;box-shadow:0 2px 12px rgba(255,215,0,0.2)}
-.rating-num{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);line-height:1}
+/* ── Rating badge (standalone) ── */
+.rating-badge{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:52px;height:62px;
+  background:linear-gradient(160deg,#1a1a4e,#080820);
+  border:1.5px solid var(--gold2);border-radius:8px;
+  box-shadow:0 2px 16px rgba(255,215,0,0.2)
+}
+.rating-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1}
 .rating-pos{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
 
 /* ── Spinner ── */
-.sp{display:inline-block;width:26px;height:26px;border:3px solid var(--bdr2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+.sp{display:inline-block;width:28px;height:28px;border:3px solid var(--bdr2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
 
 /* ── Animations ── */
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pop{from{opacity:0;transform:scale(.3) rotate(-10deg)}to{opacity:1;transform:scale(1)}}
+@keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{from{opacity:0;transform:scale(.25) rotate(-15deg)}to{opacity:1;transform:scale(1) rotate(0)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-@keyframes glow-pulse{0%,100%{box-shadow:0 0 10px var(--glow)}50%{box-shadow:0 0 24px rgba(255,215,0,0.3)}}
+@keyframes gold-pulse{0%,100%{box-shadow:0 0 12px rgba(255,215,0,0.2)}50%{box-shadow:0 0 28px rgba(255,215,0,0.4)}}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
 .up{animation:up .3s ease forwards}
-.pop{animation:pop .5s cubic-bezier(.175,.885,.32,1.275) forwards}
+.pop{animation:pop .45s cubic-bezier(.175,.885,.32,1.275) forwards}
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bdr3);border-radius:3px}
+
+/* ── Table ── */
+table{width:100%;border-collapse:collapse}
+th{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;padding:8px 4px;border-bottom:1px solid var(--bdr2)}
+td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
+
+/* ── Glow text ── */
+.glow-gold{text-shadow:0 0 20px rgba(255,215,0,0.5)}
+.glow-blue{text-shadow:0 0 20px rgba(0,180,255,0.5)}
 </style>
 </head>
 <body>
@@ -1236,8 +1370,9 @@ async function sHome(){
           ? `<img src="${figJ.foto}" style="width:100%;height:100%;object-fit:cover"/>`
           : `<span style="font-size:32px;font-weight:900;color:var(--gold);font-family:'Barlow Condensed',sans-serif">${figJ.nombre[0]}</span>`;
         const esSelf = figJ.id === ME?.jid;
-        return `<div style="background:${tBg2};border:2px solid var(--gold);border-radius:18px;padding:18px;margin-bottom:12px;position:relative;overflow:hidden;text-align:center">
-          <div style="position:absolute;top:-20px;right:-20px;font-size:90px;opacity:.06;pointer-events:none">${t.emoji}</div>
+        return `<div style="background:linear-gradient(145deg,#08082a,#12124a);border:2px solid var(--gold2);border-radius:16px;padding:18px;margin-bottom:12px;position:relative;overflow:hidden;text-align:center;box-shadow:0 0 30px rgba(255,215,0,0.15)">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)"></div>
+          <div style="position:absolute;top:-20px;right:-20px;font-size:90px;opacity:.04;pointer-events:none">${t.emoji}</div>
           <p style="font-size:11px;color:${tColor2};font-weight:800;letter-spacing:2px;font-family:'Barlow Condensed',sans-serif;margin-bottom:4px">${t.emoji} ${t.nombre}</p>
           <p style="font-size:14px;font-weight:700;color:var(--dim);margin-bottom:14px">${fmtFecha(parseFecha(p.fecha))}</p>
           <div style="width:84px;height:84px;border-radius:50%;overflow:hidden;margin:0 auto 12px;border:3px solid var(--gold);box-shadow:0 0 28px var(--gold)60;background:#2a1800;display:flex;align-items:center;justify-content:center">${av}</div>
@@ -1460,22 +1595,24 @@ window.flPls=function(q){
   const el=document.getElementById('plist');if(!el)return;
   const rm=window._RKM||{};
   el.innerHTML=f.map(j=>{
-    const pc=PC[j.pos]||'#00d4ff';
-    const posLabel=j.pos==='ARQ'?'Arquero':'Jugador';
+    const pc=PC[j.pos]||'var(--blue)';
+    const posLabel=j.pos==='ARQ'?'ARQ':'JUG';
     const rank=rm[j.id];
-    const av=j.foto?`<img src="${j.foto}" style="width:100%;height:100%;object-fit:cover" alt=""/>`:
-      `<span style="font-weight:900;color:var(--txt);font-family:'Barlow Condensed',sans-serif;font-size:19px">${(j.nombre||'?')[0].toUpperCase()}</span>`;
-    const rankBadge=rank
-      ?`<span style="font-size:11px;font-weight:900;color:var(--gold);font-family:'Barlow Condensed',sans-serif">#${rank}</span>`
-      :`<span style="font-size:10px;color:var(--dim)">—</span>`;
-    return`<div onclick="go('/player',{id:'${j.id}'})" style="background:var(--card);border-radius:11px;border:1px solid var(--bdr2);border-left:3px solid ${pc};padding:9px 11px;display:flex;align-items:center;gap:11px;cursor:pointer;margin-bottom:5px">
-      <div style="width:46px;height:46px;border-radius:8px;overflow:hidden;border:1px solid ${pc}48;flex-shrink:0;background:linear-gradient(135deg,${pc}28,${pc}0e);display:flex;align-items:center;justify-content:center">${av}</div>
-      <div style="flex:1;overflow:hidden"><p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:.5px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.nombre}</p>
-        <span style="display:inline-block;margin-top:3px;padding:2px 8px;border-radius:4px;border:1px solid ${pc}60;background:${pc}15;font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1.5px;color:${pc};font-family:'Barlow Condensed',sans-serif;font-weight:800;letter-spacing:1px">${posLabel}</span>
+    const rating = Math.min(99, Math.max(50, Math.round(60 + (j.rating||0)*0.4 + (rank ? Math.max(0,10-rank)*2 : 0))));
+    const av=j.foto
+      ?`<img src="${j.foto}" style="width:100%;height:100%;object-fit:cover" alt=""/>`
+      :`<span style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:${pc}">${(j.nombre||'?')[0].toUpperCase()}</span>`;
+    const convBadge=j.convocado
+      ?`<div style="position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)"></div>`:'';
+    return`<div onclick="go('/player',{id:'${j.id}'})" class="fifa-card">
+      ${convBadge}
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);line-height:1;text-shadow:0 0 10px rgba(255,215,0,0.4)">${rating}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;letter-spacing:1px;color:var(--dim)">${posLabel}</div>
       </div>
-      <div style="width:34px;height:34px;border-radius:7px;background:var(--surf);display:flex;align-items:center;justify-content:center">
-        ${rankBadge}
-      </div>
+      <div class="fifa-card-photo">${av}</div>
+      <div class="fifa-card-name">${j.nombre.split(' ')[0].toUpperCase()}</div>
+      ${rank?`<div style="font-size:9px;color:var(--gold);font-family:'Barlow Condensed',sans-serif;font-weight:900;margin-top:2px">#${rank}</div>`:''}
     </div>`;
   }).join('');
 };
@@ -1517,11 +1654,24 @@ async function sPlayer(p){
     <button class="bk" onclick="go('/players')">← VOLVER</button>
     ${ME?.admin?`<button class="btn btn-dim" onclick="go('/player-form',{mode:'edit',id:'${j.id}'})" style="width:auto;padding:7px 12px;font-size:12px">✏️ EDITAR</button>`:''}
   </div>
-  <div style="padding:14px 15px 18px;text-align:center;background:linear-gradient(180deg,${pc}18,transparent 70%);border-bottom:1px solid ${pc}30;margin-bottom:16px;position:relative">
-    <div style="width:100px;height:100px;border-radius:50%;overflow:hidden;margin:0 auto 14px;border:3px solid ${pc};background:linear-gradient(135deg,${pc}30,var(--card));display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px ${pc}40">
-      ${j.foto?`<img src="${j.foto}" style="width:100%;height:100%;object-fit:cover" alt=""/>`:`<span style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:${pc}">${(j.nombre||'?')[0]}</span>`}
+  <!-- FIFA Card header -->
+  <div style="padding:20px 16px 20px;text-align:center;position:relative;background:linear-gradient(180deg,${pc}20,transparent 80%);border-bottom:1px solid ${pc}25;margin-bottom:16px">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,${pc},transparent)"></div>
+    <!-- Rating + Position -->
+    <div style="display:flex;justify-content:center;gap:12px;margin-bottom:12px">
+      <div style="text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--gold);line-height:1;text-shadow:0 0 20px rgba(255,215,0,0.4)">${rank||'—'}</div>
+        <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:2px;color:var(--dim)">RANKING</div>
+      </div>
+      <div style="width:110px;height:110px;border-radius:50%;overflow:hidden;border:3px solid ${pc};background:linear-gradient(135deg,${pc}25,var(--card));display:flex;align-items:center;justify-content:center;box-shadow:0 0 30px ${pc}50,0 0 60px ${pc}20">
+        ${j.foto?`<img src="${j.foto}" style="width:100%;height:100%;object-fit:cover" alt=""/>`:`<span style="font-family:'Bebas Neue',sans-serif;font-size:46px;color:${pc}">${(j.nombre||'?')[0]}</span>`}
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:${pc};line-height:1;text-shadow:0 0 15px ${pc}80">${pts}</div>
+        <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:2px;color:var(--dim)">PUNTOS</div>
+      </div>
     </div>
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin-bottom:8px;text-shadow:0 0 20px ${pc}60">${j.nombre}</h2>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:4px;margin-bottom:8px;text-shadow:0 0 20px ${pc}50">${j.nombre.toUpperCase()}</h2>
     <div style="display:flex;gap:7px;justify-content:center;align-items:center;flex-wrap:wrap">
       <span style="padding:3px 11px;border-radius:999px;background:${pc}22;border:1px solid ${pc};font-size:12px;color:${pc};font-weight:800;font-family:'Barlow Condensed',sans-serif">${posLabel}</span>
       ${rank?`<span style="padding:3px 11px;border-radius:999px;background:var(--gold)18;border:1px solid var(--gold);font-size:12px;color:var(--gold);font-weight:800;font-family:'Barlow Condensed',sans-serif">#${rank} · ${pts} pts</span>`:''}
@@ -1695,7 +1845,7 @@ function renderRankingTable(rows, jMap, torneo) {
       const j = jMap[r.jid];
       const isMe = ME?.jid===r.jid;
       return `<tr style="border-top:1px solid var(--bdr)${isMe?';background:var(--gold)08':''}">
-        <td style="padding:10px 4px;font-size:14px;color:${i<3?color:'var(--dim)'};font-weight:900;font-family:'Bebas Neue',sans-serif;font-size:18px">${i+1}</td>
+        <td style="padding:10px 4px;font-family:'Bebas Neue',sans-serif;font-size:${i<3?'22':'16'}px;color:${i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--dim)'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
         <td style="padding:10px 4px">
           ${j?.foto?`<img src="${j.foto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px" onerror="this.style.display='none'"/>`:''}
           <span style="font-size:14px;color:${isMe?color:'var(--txt)'};font-weight:900;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px">${j?.nombre||r.jid}</span>
@@ -1919,7 +2069,7 @@ window.votarFigura = async function(pid, figJid) {
     const p = partidos.find(x=>x.id===pid); if(!p||!p.votacion_abierta) return;
     // Check not already voted
     const votos = p.votos_figura||[];
-    if(votos.find(v=>v.voter===ME.jid)){ alert('Ya votaste en este partido.'); return; }
+    if(votos.find(v=>(v.jid||v.voter)===ME.jid)){ alert('Ya votaste en este partido.'); return; }
     // Check not voting self
     if(figJid===ME.jid){ alert('No podés votarte a vos mismo.'); return; }
     // Check voter was in this match
@@ -2817,9 +2967,9 @@ async function sMatch() {
     const cv = convs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
     const ta = cv?.equipo_a_nombre||'A', tb = cv?.equipo_b_nombre||'B';
     const votos = p.votos_figura||[];
-    // Tally votes
+    // Tally votes — support both old {voter,fig} and new {jid,voto} formats
     const tally = {};
-    votos.forEach(v=>{ tally[v.fig]=(tally[v.fig]||0)+1; });
+    votos.forEach(v=>{ const votado=v.voto||v.fig; if(votado) tally[votado]=(tally[votado]||0)+1; });
     const jMap2 = {};
     allJs.forEach(j=>jMap2[j.id]=j);
     const tallyHtml = Object.entries(tally).sort((a,b)=>b[1]-a[1]).map(([jid,cnt])=>{
@@ -2959,9 +3109,9 @@ window.cerrarVotacion = async function(pid) {
       await upsertRow('convocatorias', {...cvC, estado:'finalizado'});
     }
     const votos = p.votos_figura||[];
-    // Tally
+    // Tally — support both old {voter,fig} and new {jid,voto} formats
     const tally = {};
-    votos.forEach(v=>{ tally[v.fig]=(tally[v.fig]||0)+1; });
+    votos.forEach(v=>{ const votado=v.voto||v.fig; if(votado) tally[votado]=(tally[votado]||0)+1; });
     const entries = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
     if(entries.length===0){ alert('No hay votos todavía.'); return; }
     const maxVotos = entries[0][1];
