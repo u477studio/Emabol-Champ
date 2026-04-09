@@ -1200,7 +1200,9 @@ async function sHome(){
   // Get active torneo ids for filtering
   const activeTorneoIds = ts.filter(t=>t.estado!=='archivado').map(t=>t.id);
   const figTorneoId = CURRENT_TORNEO?.id || activeTorneoIds[0] || null;
-  const figuraBlocks = partidos
+  // Show figura blocks to: all non-admin players, AND admins who have a jid (are real players)
+  const shouldShowFigura = !ME?.admin || !!ME?.jid;
+  const figuraBlocks = !shouldShowFigura ? [] : partidos
     .filter(p => !figTorneoId || p.tid === figTorneoId) // filter by current torneo
     .sort((a,b)=>{
       const da = parseFecha(a.fecha)||new Date(0);
@@ -1385,7 +1387,7 @@ async function sHome(){
       <p style="font-size:10px;color:var(--gold);font-weight:800;letter-spacing:3px">⚽ PRÓXIMOS PARTIDOS</p>
     </div>
     ${matchCards}
-    ${ME&&!ME.admin?figuraBlocks:''}
+    ${ME&&(!ME.admin||ME.jid)?figuraBlocks:''}
     ${rankingTop5Block}
     ${novBlock}
     ${adminTiles}${playerTiles}
