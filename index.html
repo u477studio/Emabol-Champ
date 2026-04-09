@@ -708,7 +708,7 @@ async function render(){
     }
     if(R==='/home'){
       // Check if player needs to vote before seeing home
-      const needsVote = ME && !ME.admin ? await checkAndShowVoting() : false;
+      const needsVote = ME && ME.jid ? await checkAndShowVoting() : false;
       if(needsVote) return;
       await sHome();return;
     }
@@ -1026,7 +1026,7 @@ async function sHome(){
 
   // Check if current player has pending vote
   const now_ts = Date.now();
-  const partidosPendVoto = !ME?.admin ? (await getAll('partidos').catch(()=>[])).filter(p => {
+  const partidosPendVoto = ME?.jid ? (await getAll('partidos').catch(()=>[])).filter(p => {
     if(!p.votacion_abierta) return false;
     if(p.votacion_cierre && now_ts > p.votacion_cierre) return false;
     const jugaron = [...(p.equipo_a||[]), ...(p.equipo_b||[])];
@@ -1221,7 +1221,9 @@ async function sHome(){
       const alreadyVoted = !!(p.votos_figura||[]).find(v=>(v.jid||v.voter)===ME?.jid);
       // Use partido equipo_a/b directly (most reliable source)
       const jugadoresPartido = [...new Set([...(p.equipo_a||[]),...(p.equipo_b||[])])];
-      const iParticipated = jugadoresPartido.includes(ME?.jid);
+      // Admin with jid is treated as a player for figura purposes
+      const myJid = ME?.jid;
+      const iParticipated = !!myJid && jugadoresPartido.includes(myJid);
 
       if(p.fig) {
         const tColor2 = p.tid==='t1'?'var(--blue)':'#9f7aea';
