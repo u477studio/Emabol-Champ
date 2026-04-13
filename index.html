@@ -2861,119 +2861,86 @@ window.toggleAsistencia = async function(cvid, accion) {
 
 // ═══════ AYUDA ═══════
 async function sAyuda() {
-  const isAdmin = ME?.admin;
+  const isAdmin = ME?.admin && !ME?.jid; // pure admin (emabol/emabol)
+  const isAdminPlayer = ME?.admin && ME?.jid; // admin with player profile
 
-  const jugadorSection = `
-    <div style="background:linear-gradient(135deg,#001525,#002040);border:1px solid #00d4ff30;border-radius:14px;padding:16px;margin-bottom:12px">
-      <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;color:#00d4ff;letter-spacing:1px;margin-bottom:14px">👤 JUGADORES</p>
-
-      <div style="margin-bottom:14px">
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:6px">🔑 Cómo ingresar</p>
-        <p style="font-size:12px;color:var(--muted);line-height:1.7">Escribí tu nombre tal como figura en la lista y tocá <strong style="color:var(--txt)">INGRESAR</strong>. No hace falta contraseña.</p>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:8px">⚽ Tus estados en un partido</p>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          <div style="background:#00d4ff0e;border:1px solid #00d4ff30;border-radius:9px;padding:10px 12px">
-            <p style="font-size:11px;font-weight:900;color:#00d4ff;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;margin-bottom:3px">✋ CONVOCADO</p>
-            <p style="font-size:11px;color:var(--muted);line-height:1.5">Te anotaste para jugar. El admin puede ponerte en un equipo.</p>
-          </div>
-          <div style="background:#2a2a3e;border:1px solid var(--bdr2);border-radius:9px;padding:10px 12px">
-            <p style="font-size:11px;font-weight:900;color:#6a6a8a;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;margin-bottom:3px">🪑 NO CONVOCADO</p>
-            <p style="font-size:11px;color:var(--muted);line-height:1.5">No vas a jugar. Podés anotarte tocando <strong style="color:var(--txt)">${tr('sign_up')}</strong>.</p>
-          </div>
-          <div style="background:#ff44440e;border:1px solid #ff444430;border-radius:9px;padding:10px 12px">
-            <p style="font-size:11px;font-weight:900;color:#ff4444;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;margin-bottom:3px">🚫 SUSPENDIDO</p>
-            <p style="font-size:11px;color:var(--muted);line-height:1.5">No podés participar en este partido. Solo el admin puede cambiarlo.</p>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:8px">📋 Estados del partido</p>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          <div style="background:var(--red)0e;border:1px solid var(--red)30;border-radius:9px;padding:10px 12px">
-            <p style="font-size:11px;font-weight:900;color:var(--red);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;margin-bottom:3px">📋 CONVOCATORIA EN PROCESO</p>
-            <p style="font-size:11px;color:var(--muted);line-height:1.5">Podés anotarte o bajarte libremente. El admin está armando equipos.</p>
-          </div>
-          <div style="background:#00ff880e;border:1px solid #00ff8830;border-radius:9px;padding:10px 12px">
-            <p style="font-size:11px;font-weight:900;color:#00ff88;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;margin-bottom:3px">✅ PARTIDO CONFIRMADO</p>
-            <p style="font-size:11px;color:var(--muted);line-height:1.5">Los equipos están publicados. Ya no podés cambiar tu estado.</p>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:6px">📱 Dónde encontrar todo</p>
-        <ul style="font-size:12px;color:var(--muted);line-height:1.9;padding-left:16px">
-          <li><strong style="color:var(--txt)">INICIO</strong> — próximos partidos y tu estado actual</li>
-          <li><strong style="color:var(--txt)">${tr('matches')}</strong> — fixture completo y botón para anotarte</li>
-          <li><strong style="color:var(--txt)">${tr('ranking')}</strong> — tabla general y por torneo</li>
-          <li><strong style="color:var(--txt)">${tr('help_title')}</strong> — esta pantalla</li>
-        </ul>
-      </div>
-
-      <div>
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:6px">🧺 Camisetas</p>
-        <p style="font-size:12px;color:var(--muted);line-height:1.7">Hay un ciclo de quién lleva las camisetas a lavar. Cuando te toque verás el aviso <strong style="color:var(--red)">🧺 TE TOCA LLEVAR LAS CAMISETAS</strong> en la pantalla del partido.</p>
-      </div>
+  const section = (emoji, title, color, content) =>
+    `<div style="background:var(--card);border:1px solid ${color}25;border-radius:14px;padding:16px;margin-bottom:12px">
+      <p style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:${color};margin-bottom:12px">${emoji} ${title}</p>
+      ${content}
     </div>`;
 
-  const adminSection = !isAdmin ? '' : `
-    <div style="background:linear-gradient(135deg,#1a0d00,#2d1800);border:1px solid var(--red)30;border-radius:14px;padding:16px;margin-bottom:12px">
-      <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;color:var(--red);letter-spacing:1px;margin-bottom:14px">⚙️ ADMIN</p>
-
-      <div style="margin-bottom:14px">
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:6px">📋 Gestionar convocatoria</p>
-        <ol style="font-size:12px;color:var(--muted);line-height:1.9;padding-left:16px">
-          <li>Ir a <strong style="color:var(--txt)">${tr('matches')}</strong> → <strong style="color:var(--txt)">⚽ GESTIONAR CONVOCATORIA</strong></li>
-          <li>Cambiá el estado de cada jugador: <span style="color:#00d4ff">Convocar</span>, <span style="color:#6a6a8a">No va</span> o <span style="color:#ff4444">Suspender</span></li>
-          <li>Asigná convocados al <strong style="color:var(--txt)">Equipo A</strong> o <strong style="color:var(--txt)">Equipo B</strong></li>
-          <li>Elegí las camisetas del partido</li>
-          <li>Con 8 en cada equipo → <strong style="color:#00ff88">✅ CONFIRMAR PARTIDO</strong></li>
-        </ol>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:6px">🔄 Baja después de confirmar</p>
-        <p style="font-size:12px;color:var(--muted);line-height:1.7">Tocá <strong style="color:var(--red)">🔄 VOLVER A CONVOCATORIA EN PROCESO</strong>, hacé el cambio y volvé a confirmar.</p>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:6px">🏆 Cargar resultado</p>
-        <ol style="font-size:12px;color:var(--muted);line-height:1.9;padding-left:16px">
-          <li>Ir a <strong style="color:var(--txt)">INICIO</strong> → <strong style="color:var(--txt)">${tr('load_result')}</strong></li>
-          <li>Seleccioná torneo y jugadores que participaron</li>
-          <li>Indicá quién ganó (o empate)</li>
-          <li>Elegí la figura del partido ⭐</li>
-        </ol>
-        <div style="background:var(--red)10;border:1px solid var(--red)30;border-radius:8px;padding:8px 12px;margin-top:8px">
-          <p style="font-size:11px;color:var(--red);font-weight:700">✓ Convocado +1 · 🏆 Ganó +3 · ⭐ Figura +2</p>
-        </div>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:6px">🧺 Camisetas</p>
-        <p style="font-size:12px;color:var(--muted);line-height:1.7">En la convocatoria aparece quién lleva las camisetas. El sistema toma al próximo convocado en el ciclo. Podés saltear con el botón <strong style="color:var(--txt)">Saltar</strong>.</p>
-      </div>
-
-      <div>
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;color:var(--txt);margin-bottom:6px">📤 Compartir la app</p>
-        <p style="font-size:12px;color:var(--muted);line-height:1.7">En <strong style="color:var(--txt)">INICIO</strong> hay un botón para copiar el link y compartirlo con los jugadores.</p>
-      </div>
+  const item = (title, body, color='var(--muted)') =>
+    `<div style="margin-bottom:12px">
+      <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;color:var(--white);margin-bottom:4px">${title}</p>
+      <p style="font-size:12px;color:var(--muted);line-height:1.7">${body}</p>
     </div>`;
 
-  setContent(`<div class="screen up" style="padding:76px 15px 90px">
-    <div style="margin-bottom:16px">
-      <p style="font-size:10px;color:var(--red);font-weight:800;letter-spacing:3px">❓ GUÍA</p>
-      <h2 style="font-size:22px;font-family:'Barlow Condensed',sans-serif"><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px">AYUDA</span></h2>
+  const badge = (label, color, bg) =>
+    `<span style="display:inline-block;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:1.5px;color:${color};background:${bg};border:1px solid ${color}40;border-radius:4px;padding:2px 8px">${label}</span>`;
+
+  // ── JUGADOR section ──────────────────────────────────────────────────────
+  const jugadorSection = section('⚽', 'PARA JUGADORES', 'var(--red)', `
+    ${item('🔑 Cómo ingresar',
+      'Ingresás con tu <strong style="color:var(--white)">email y contraseña</strong>. Si es tu primera vez, tocá <strong style="color:var(--white)">Creá tu cuenta</strong> y el admin te vincula con tu perfil.'
+    )}
+    ${item('🏠 Pantalla INICIO',
+      'Ves el próximo partido y tu estado. Si hay una votación de figura abierta, aparece aquí. También se muestran las últimas dos figuras elegidas.'
+    )}
+    ${item('✋ Anotarte a un partido',
+      'En la pantalla <strong style="color:var(--white)">PARTIDOS</strong>, encontrás la próxima convocatoria. Tocá <strong style="color:var(--red)">QUIERO JUGAR</strong> para anotarte o <strong style="color:var(--white)">X No voy</strong> para bajarte.'
+    )}
+    ${item('📋 Fixture y resultados',
+      'En <strong style="color:var(--white)">PARTIDOS</strong> ves el fixture completo del torneo. Cada fecha muestra tu resultado personal: ' +
+      badge('GANÓ','#00e676','rgba(0,230,118,0.1)') + ' ' +
+      badge('EMPATE','#aaaaaa','rgba(170,170,170,0.08)') + ' ' +
+      badge('DERROTA','#ff5555','rgba(255,85,85,0.1)') + ' ' +
+      badge('AUSENTE','#606060','rgba(96,96,96,0.1)') + ' ' +
+      badge('⭐ FIGURA','#ffd700','rgba(255,215,0,0.1)')
+    )}
+    ${item('🏆 Ranking',
+      'En la pestaña <strong style="color:var(--white)">RANKING</strong> ves la tabla general del torneo. Los puntos se suman así: <strong style="color:var(--white)">Convocado +1 · Ganó +3 · Empate +1 · Figura +2</strong>.'
+    )}
+    ${item('⭐ Votar la figura',
+      'Después de cada partido, los jugadores que participaron reciben una pantalla de votación al ingresar. Tenés 24 horas para votar. Los que no jugaron ven el resultado una vez que se anuncia.'
+    )}
+    <div style="background:rgba(255,32,32,0.06);border:1px solid rgba(255,32,32,0.2);border-radius:8px;padding:10px 12px;margin-top:4px">
+      <p style="font-size:11px;color:var(--muted);line-height:1.6">¿Problemas para entrar? Contactá al admin del grupo 🙌</p>
     </div>
-    ${adminSection}
+  `);
+
+  // ── ADMIN section ────────────────────────────────────────────────────────
+  const adminSection = !ME?.admin ? '' : section('⚙️', 'PARA ADMINS', 'var(--red)', `
+    ${item('📋 Gestionar convocatoria',
+      'Desde <strong style="color:var(--white)">PARTIDOS → GESTIONAR CONVOCATORIA</strong> cambiás el estado de cada jugador: convocado, no va, o suspendido. Asignás a cada uno un equipo (AJAX o ARSENAL). Con 8 jugadores por equipo podés <strong style="color:var(--white)">CONFIRMAR PARTIDO</strong> para publicar las alineaciones.'
+    )}
+    ${item('🔄 Modificar después de confirmar',
+      'Tocá <strong style="color:var(--white)">VOLVER A CONVOCATORIA EN PROCESO</strong>, hacé el cambio y volvé a confirmar.'
+    )}
+    ${item('🏆 Cargar resultado',
+      'Desde <strong style="color:var(--white)">INICIO → RESULTADO</strong>. Seleccioná los jugadores que participaron, el equipo ganador (o empate) y abrís la votación de figura. El ranking se actualiza automáticamente.'
+    )}
+    ${item('⭐ Cerrar votación y asignar figura',
+      'Desde <strong style="color:var(--white)">PARTIDOS → CARGAR RESULTADO</strong> ves los votos en tiempo real. Cerrás la votación y el sistema asigna automáticamente la figura al más votado.'
+    )}
+    ${item('👥 Jugadores',
+      'En la pestaña <strong style="color:var(--white)">JUGADORES</strong> ves el plantel completo. Podés editar, agregar o desactivar jugadores. También vinculás el email de Supabase Auth con cada perfil.'
+    )}
+    ${item('📢 Novedades',
+      'En <strong style="color:var(--white)">INICIO</strong> hay un bloque de novedades que podés editar libremente. Usalo para comunicar información al grupo.'
+    )}
+    ${item('🔧 Mantenimiento',
+      'Si necesitás hacer cambios sin que los jugadores lo vean, activá el modo mantenimiento desde INICIO. Los jugadores ven una pantalla de espera y solo los admins pueden navegar.'
+    )}
+  `);
+
+  setContent(`<div class="screen up" style="padding:48px 15px 90px">
+    <div style="margin-bottom:18px">
+      <p style="font-size:10px;color:var(--red);font-weight:900;letter-spacing:4px">❓ AYUDA</p>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px">GUÍA DE LA APP</h2>
+    </div>
     ${jugadorSection}
-    <div style="background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:14px;text-align:center;margin-top:4px">
-      <p style="font-size:11px;color:var(--dim)">¿Problemas? Contactá al admin del grupo 🙌</p>
-    </div>
+    ${adminSection}
   </div>${renderNav()}`);
 }
 
