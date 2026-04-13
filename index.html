@@ -1592,7 +1592,7 @@ async function sHome(){
 
   // ── Top 5 Ranking ─────────────────────────────────────────────────────────
   const rankingTop5Block = (() => {
-    if(ME?.admin) return '';
+    if(ME?.admin && !ME?.jid) return '';
     const totPts = {};
     allRk.forEach(e=>{ totPts[e.jid]=(totPts[e.jid]||0)+(e.pts||0); });
     const sorted = Object.entries(totPts).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -1654,6 +1654,7 @@ async function sHome(){
     </div>
     ${matchCards}
     ${ME&&(!ME.admin||ME.jid)?`<div style="display:flex;gap:10px;margin-bottom:4px">${figuraBlocks}</div>`:''}
+    ${ME&&(!ME.admin||ME.jid)?rankingTop5Block:''}
     ${novBlock}
     ${adminTiles}${playerTiles}
     ${shareBlock}
