@@ -1654,7 +1654,6 @@ async function sHome(){
     </div>
     ${matchCards}
     ${ME&&(!ME.admin||ME.jid)?`<div style="display:flex;gap:10px;margin-bottom:4px">${figuraBlocks}</div>`:''}
-    ${ME&&!ME.admin?rankingTop5Block:''}
     ${novBlock}
     ${adminTiles}${playerTiles}
     ${shareBlock}
@@ -4073,13 +4072,16 @@ async function sMatchJugador() {
 
   const getPlayerResult = (p) => {
     const ea = p.equipo_a||[], eb = p.equipo_b||[];
-    const jugaron = [...ea,...eb];
+    // Also support old conv format
+    const conv = Array.isArray(p.conv) ? p.conv : [];
+    const jugaron = [...new Set([...ea,...eb,...conv])];
     const jid = ME.jid;
-    if(!jugaron.includes(jid)) return {code:'AUS', label:'AUSENTE', color:'#5a5a7a'};
+    if(!jid || !jugaron.includes(jid)) return {code:'AUS', label:'AUSENTE', color:'var(--dim)'};
     const gan = p.gan;
     const isFig = p.fig === jid;
-    if(gan==='EMPATE' || gan===tr('draw')) return {code:'EMP', label:'EMPATE', color:'var(--gold)', fig:isFig};
-    const inA = ea.includes(jid);
+    if(!gan) return {code:'SIN', label:'SIN RESULT', color:'var(--dim)', fig:isFig};
+    if(gan==='EMPATE' || gan==='empate' || gan===tr('draw')) return {code:'EMP', label:'EMPATE', color:'#aaaaaa', fig:isFig};
+    const inA = ea.includes(jid) || (!ea.length && conv.includes(jid));
     const ganadorA = gan==='a';
     const gano = (inA && ganadorA) || (!inA && !ganadorA);
     if(gano) return {code:'GAN', label:'GANÓ', color:'#00ff88', fig:isFig};
@@ -4132,8 +4134,8 @@ async function sMatchJugador() {
       // Played — show result
       const res = getPlayerResult(p);
       const isFig = p.fig === ME?.jid;
-      const resultLabel = isFig ? 'FIGURA ⭐' : res.label;
-      const resultColor = isFig ? 'var(--gold)' : res.color;
+      const resultLabel = res.fig ? '⭐ FIGURA' : res.label;
+      const resultColor = res.fig ? '#ffd700' : res.color;
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04)">
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;color:var(--dim);min-width:28px">${jNum}</div>
         <div style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--white)">${fechaStr}</div>
