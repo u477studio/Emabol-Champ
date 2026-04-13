@@ -858,7 +858,6 @@ async function render(){
     if(R==='/match'){await sProximos();return;}
     if(R==='/convocatoria'){await sConvocatoria(RP);return;}
     if(R==='/cargar-resultado'){await sMatch();return;}
-    if(R==='/historial'){await sHistorial();return;}
     if(R==='/ayuda'){await sAyuda();return;}
     R='/home';await sHome();
   }catch(e){
@@ -1375,8 +1374,7 @@ async function sHome(){
         <div onclick="go('/ranking')" style="background:var(--card);border:1px solid #00ff8830;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">🏆</span><div><p style="font-size:12px;font-weight:900;color:#00ff88;font-family:'Barlow Condensed',sans-serif">${tr('ranking')}</p><p style="font-size:10px;color:var(--dim)">${tr('general_table')}</p></div>
         </div>
-        <div onclick="go('/historial')" style="background:var(--card);border:1px solid #c084fc30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
-          <span style="font-size:20px">📋</span><div><p style="font-size:12px;font-weight:900;color:#c084fc;font-family:'Barlow Condensed',sans-serif">${tr('history')}</p><p style="font-size:10px;color:var(--dim)">${tr('matches_played')}</p></div>
+        
         </div>
         <div onclick="go('/cargar-resultado')" style="background:var(--card);border:1px solid #00d4ff30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">📊</span><div><p style="font-size:12px;font-weight:900;color:#00d4ff;font-family:'Barlow Condensed',sans-serif">RESULTADO</p><p style="font-size:10px;color:var(--dim)">Cargar partido</p></div>
@@ -1389,8 +1387,7 @@ async function sHome(){
       <div onclick="go('/ranking')" style="background:var(--card);border:1px solid #00ff8830;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
         <span style="font-size:20px">🏆</span><div><p style="font-size:12px;font-weight:900;color:#00ff88;font-family:'Barlow Condensed',sans-serif">${tr('ranking')}</p><p style="font-size:10px;color:var(--dim)">${tr('general_table')}</p></div>
       </div>
-      <div onclick="go('/historial')" style="background:var(--card);border:1px solid #c084fc30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
-        <span style="font-size:20px">📋</span><div><p style="font-size:12px;font-weight:900;color:#c084fc;font-family:'Barlow Condensed',sans-serif">${tr('history')}</p><p style="font-size:10px;color:var(--dim)">${tr('matches_played')}</p></div>
+      
       </div>
     </div>`:'';
 
@@ -2863,465 +2860,6 @@ window.toggleAsistencia = async function(cvid, accion) {
 };
 
 
-// ═══════ HISTORIAL ═══════
-async function sHistorial(){
-  setContent(loading('Cargando historial...'));
-  const [partidos, js, ts] = await Promise.all([getAll('partidos'), getJugadores(false), getAll('torneos')]);
-  const jMap={}; js.forEach(j=>jMap[j.id]=j);
-  const tMap={}; ts.forEach(t=>tMap[t.id]=t);
-
-  // Ordenar por fecha desc
-  const sorted = [...partidos].sort((a,b)=>b.fecha.localeCompare(a.fecha));
-
-  const rows = sorted.length===0
-    ? `<div style="text-align:center;padding:48px 0;color:var(--dim)">
-         <p style="font-size:40px;margin-bottom:10px">📋</p>
-         <p style="font-size:14px">No hay partidos cargados aún.</p>
-       </div>`
-    : sorted.map(p=>{
-        const t = tMap[p.tid];
-        const color = p.tid==='t1'?'var(--red)':'var(--red)';
-        const conv = Array.isArray(p.conv)?p.conv:[];
-        const fig  = p.fig ? jMap[p.fig] : null;
-        const ganLabel = p.gan===tr('draw')
-          ? `<span style="color:#00ff88;font-weight:900;font-family:'Barlow Condensed',sans-serif;font-size:14px">${tr('draw')}</span>`
-          : `<span style="color:var(--red);font-weight:900;font-family:'Barlow Condensed',sans-serif;font-size:14px">GANÓ EQUIPO ${p.gan}</span>`;
-        const figHtml = fig
-          ? `<p style="font-size:10px;color:var(--red);margin-top:2px;font-family:'Barlow Condensed',sans-serif">⭐ FIGURA: ${fig.nombre}</p>`
-          : '';
-        const playerChips = conv.map(jid=>{
-          const j=jMap[jid]; if(!j) return '';
-          const pc = PC[j.pos]||'#888';
-          return `<span style="padding:2px 7px;border-radius:999px;background:${pc}15;border:1px solid ${pc}40;font-size:9px;color:${pc};font-family:'Barlow Condensed',sans-serif;font-weight:700">${j.nombre}</span>`;
-        }).join('');
-
-        return `<div style="background:var(--card);border:1px solid ${color}30;border-radius:12px;padding:14px;margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-            <div>
-              <p style="font-size:10px;color:${color};font-weight:800;letter-spacing:1.5px;font-family:'Barlow Condensed',sans-serif;margin-bottom:2px">${t?t.emoji+' '+t.nombre:'Torneo'}</p>
-              <p style="font-size:15px;font-weight:900;color:var(--txt);font-family:'Barlow Condensed',sans-serif">${p.fecha}</p>
-            </div>
-            <div style="text-align:right">${ganLabel}${figHtml}</div>
-          </div>
-          ${conv.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${playerChips}</div>`:''}
-        </div>`;
-      }).join('');
-
-  setContent(`<div class="screen up" style="padding:14px 15px 18px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-      <button class="bk" onclick="go('/home')">← VOLVER</button>
-    </div>
-    <p style="font-size:10px;color:#c084fc;font-weight:800;letter-spacing:3px;margin-bottom:3px">📋 REGISTRO</p>
-    <h2 style="font-size:22px;font-family:'Barlow Condensed',sans-serif;margin-bottom:4px">HISTORIAL DE PARTIDOS</h2>
-    <p style="font-size:12px;color:var(--dim);margin-bottom:14px">${sorted.length} partido${sorted.length!==1?'s':''} jugado${sorted.length!==1?'s':''}</p>
-    ${rows}
-  </div>`);
-}
-
-
-// Old match (cargar resultado) — kept for admin
-let MS={};
-async function sMatch() {
-  // Players get their own match history view
-  if(!ME?.admin){ await sMatchJugador(); return; }
-  setContent(loading('Cargando partidos...'));
-
-  const [ts, allJs, convs, partidos] = await Promise.all([
-    getAll('torneos').catch(()=>[]),
-    getJugadores(false).catch(()=>[]),
-    getAll('convocatorias').catch(()=>[]),
-    getAll('partidos').catch(()=>[])
-  ]);
-  // Partidos pending figura vote or open voting
-  const partidosSinFig = partidos.filter(p =>
-    !p.fig &&
-    (p.votacion_abierta || (p.votos_figura||[]).length > 0 ||
-     (Array.isArray(p.conv) && p.conv.length > 0) ||
-     (Array.isArray(p.equipo_a) && p.equipo_a.length > 0))
-  );
-
-  // Build list of confirmed convocatorias without a resultado yet
-  const jugados = new Set(partidos.map(p=>p.tid+'|'+p.fecha));
-  // Confirmados sin resultado cargado
-  const pendientes = convs
-    .filter(cv => cv.estado==='confirmado' && !jugados.has(cv.tid+'|'+cv.fecha))
-    .sort((a,b)=>a.fecha.localeCompare(b.fecha));
-
-  // Finalizados sin resultado (guardarResultado falló o nunca se ejecutó)
-  const finalizadosSinPartido = convs
-    .filter(cv => cv.estado==='finalizado' && !jugados.has(cv.tid+'|'+cv.fecha))
-    .sort((a,b)=>a.fecha.localeCompare(b.fecha));
-
-  // (continue building both sections even if pendientes is empty)
-
-  // Render list of pending matches
-  const jMap = {};
-  allJs.forEach(j=>jMap[j.id]=j);
-
-  // Cards for finalizado convs without a partido — allow admin to load result
-  const cardsOrphaned = finalizadosSinPartido.map(cv=>{
-    const t = ts.find(x=>x.id===cv.tid)||{emoji:'⚽',nombre:'',id:cv.tid};
-    const color = t.color || 'var(--gold)';
-    const ta = cv.equipo_a_nombre||'A', tb = cv.equipo_b_nombre||'B';
-    const teamA = TEAMS[ta]||TEAMS['AJAX'], teamB = TEAMS[tb]||TEAMS['ROMA'];
-    const ea = cv.equipo_a||[], eb = cv.equipo_b||[];
-    window._matchConvs = window._matchConvs||{};
-    window._matchConvs[cv.id] = cv;
-    window._matchResults = window._matchResults||{};
-    window._matchResults[cv.id] = window._matchResults[cv.id]||{gan:null,fig:null};
-    return `<div style="background:var(--card);border:1px solid ${color}30;border-radius:14px;padding:16px;margin-bottom:14px">
-      <p style="font-size:10px;color:#ff8800;font-weight:800;letter-spacing:2px;margin-bottom:4px">⚠️ RESULTADO PENDIENTE</p>
-      <p style="font-size:10px;color:${color};font-weight:800;letter-spacing:2px;margin-bottom:4px">${t.emoji} ${t.nombre}</p>
-      <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;margin-bottom:12px">${fmtFechaCorta(cv.fecha)}</p>
-      <p style="font-size:9px;color:var(--dim);font-weight:800;letter-spacing:2px;margin-bottom:8px">RESULTADO</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
-        <button onclick="selResult('${cv.id}','a')" id="res-${cv.id}-a"
-          style="padding:12px 4px;border-radius:10px;cursor:pointer;border:1.5px solid ${teamA.color}60;background:${teamA.color}15;color:${teamA.color};font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;text-align:center">
-          🏆 ${ta}
-        </button>
-        <button onclick="selResult('${cv.id}','empate')" id="res-${cv.id}-empate"
-          style="padding:12px 4px;border-radius:10px;cursor:pointer;border:1.5px solid #00ff8860;background:#00ff8815;color:#00ff88;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;text-align:center">
-          🤝 EMPATE
-        </button>
-        <button onclick="selResult('${cv.id}','b')" id="res-${cv.id}-b"
-          style="padding:12px 4px;border-radius:10px;cursor:pointer;border:1.5px solid ${teamB.color}60;background:${teamB.color}15;color:${teamB.color};font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;text-align:center">
-          🏆 ${tb}
-        </button>
-      </div>
-      <button onclick="guardarResultado('${cv.id}')"
-        style="width:100%;padding:13px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--gold),#c9a000);color:#000;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:1px">
-        💾 GUARDAR RESULTADO
-      </button>
-    </div>`;
-  }).join('');
-
-  const cards = pendientes.map(cv=>{
-    const t = ts.find(x=>x.id===cv.tid)||{emoji:'⚽',nombre:'',id:cv.tid};
-    const color = t.color || 'var(--gold)';
-    const ta = cv.equipo_a_nombre||'A', tb = cv.equipo_b_nombre||'B';
-    const teamA = TEAMS[ta]||TEAMS['AJAX'], teamB = TEAMS[tb]||TEAMS['ROMA'];
-    const ea = cv.equipo_a||[], eb = cv.equipo_b||[];
-
-    function miniChip(jid){
-      const j=jMap[jid]; if(!j) return '';
-      return `<span style="font-size:10px;color:var(--muted);background:var(--surf);border-radius:5px;padding:2px 5px">${j.nombre}</span>`;
-    }
-
-    return `<div style="background:var(--card);border:1px solid ${color}30;border-radius:14px;padding:16px;margin-bottom:14px">
-      <p style="font-size:10px;color:${color};font-weight:800;letter-spacing:2px;margin-bottom:4px">${t.emoji} ${t.nombre}</p>
-      <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;margin-bottom:12px">${fmtFechaCorta(cv.fecha)}</p>
-
-      <!-- Result buttons -->
-      <p style="font-size:9px;color:var(--dim);font-weight:800;letter-spacing:2px;margin-bottom:8px">RESULTADO</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
-        <button onclick="selResult('${cv.id}','a')" id="res-${cv.id}-a"
-          style="padding:12px 4px;border-radius:10px;cursor:pointer;border:1.5px solid ${teamA.color}60;background:${teamA.color}15;color:${teamA.color};font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;text-align:center;transition:all .15s">
-          🏆 ${ta}
-        </button>
-        <button onclick="selResult('${cv.id}','empate')" id="res-${cv.id}-empate"
-          style="padding:12px 4px;border-radius:10px;cursor:pointer;border:1.5px solid #00ff8860;background:#00ff8815;color:#00ff88;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;text-align:center;transition:all .15s">
-          🤝 EMPATE
-        </button>
-        <button onclick="selResult('${cv.id}','b')" id="res-${cv.id}-b"
-          style="padding:12px 4px;border-radius:10px;cursor:pointer;border:1.5px solid ${teamB.color}60;background:${teamB.color}15;color:${teamB.color};font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;text-align:center;transition:all .15s">
-          🏆 ${tb}
-        </button>
-      </div>
-
-      <!-- Figura -->
-      <p style="font-size:9px;color:var(--dim);font-weight:800;letter-spacing:2px;margin-bottom:8px">FIGURA ⭐</p>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px" id="fig-list-${cv.id}">
-        <button onclick="selFig('${cv.id}',null)" id="fig-${cv.id}-null"
-          style="padding:5px 10px;border-radius:999px;cursor:pointer;border:1.5px solid var(--red);background:var(--red)20;color:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px">
-          Sin figura
-        </button>
-        ${[...ea,...eb].map(jid=>{
-          const j=jMap[jid]; if(!j) return '';
-          return `<button onclick="selFig('${cv.id}','${jid}')" id="fig-${cv.id}-${jid}"
-            style="padding:5px 10px;border-radius:999px;cursor:pointer;border:1.5px solid #2a2a3e;background:transparent;color:var(--dim);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px">
-            ${j.nombre}
-          </button>`;
-        }).join('')}
-      </div>
-
-      <button onclick="guardarResultado('${cv.id}')"
-        style="width:100%;padding:13px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--gold),#c9a000);color:#000;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:1px">
-        💾 GUARDAR RESULTADO
-      </button>
-    </div>`;
-  }).join('');
-
-  // Store conv data for use by window functions
-  window._matchConvs = {};
-  pendientes.forEach(cv=>{ window._matchConvs[cv.id] = cv; });
-  finalizadosSinPartido.forEach(cv=>{ window._matchConvs[cv.id] = cv; });
-  window._matchResults = {};
-  pendientes.forEach(cv=>{ window._matchResults[cv.id] = {gan:null, fig:null}; });
-  finalizadosSinPartido.forEach(cv=>{ window._matchResults[cv.id] = {gan:null, fig:null}; });
-  window._matchJs = jMap;
-  window._matchTs = ts;
-
-  // Voting section: partidos sin figura
-  const votingCards = partidosSinFig.map(p=>{
-    const t = ts.find(x=>x.id===p.tid)||{emoji:'⚽',nombre:'',id:p.tid};
-    const color = t.color || 'var(--gold)';
-    const cv = convs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
-    const ta = cv?.equipo_a_nombre||'A', tb = cv?.equipo_b_nombre||'B';
-    const votos = p.votos_figura||[];
-    // Tally votes — support both old {voter,fig} and new {jid,voto} formats
-    const tally = {};
-    votos.forEach(v=>{ const votado=v.voto||v.fig; if(votado) tally[votado]=(tally[votado]||0)+1; });
-    const jMap2 = {};
-    allJs.forEach(j=>jMap2[j.id]=j);
-    const tallyHtml = Object.entries(tally).sort((a,b)=>b[1]-a[1]).map(([jid,cnt])=>{
-      const j=jMap2[jid]; if(!j) return '';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surf);border-radius:8px;margin-bottom:4px">
-        <p style="flex:1;font-size:12px;font-weight:700">${j.nombre}</p>
-        <span style="font-size:13px;font-weight:900;color:var(--red);font-family:'Barlow Condensed',sans-serif">${cnt} voto${cnt>1?'s':''}</span>
-      </div>`;
-    }).join('');
-    return `<div style="background:var(--card);border:1px solid ${color}30;border-radius:14px;padding:16px;margin-bottom:10px">
-      <p style="font-size:10px;color:${color};font-weight:800;letter-spacing:2px;margin-bottom:4px">${t.emoji} ${t.nombre}</p>
-      <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;margin-bottom:10px">${fmtFechaCorta(p.fecha)} — ⭐ FIGURA</p>
-      ${(p.votacion_abierta || votos.length > 0)
-        ? `<div style="background:var(--red)12;border:1px solid var(--red)40;border-radius:9px;padding:10px;margin-bottom:10px">
-            <p style="font-size:11px;color:var(--red);font-weight:800;margin-bottom:8px">🗳️ VOTACIÓN ${p.votacion_abierta?'ABIERTA':'CON VOTOS'} · ${votos.length} voto${votos.length!==1?'s':''}</p>
-            ${tallyHtml||'<p style="font-size:11px;color:var(--dim)">Aún sin votos.</p>'}
-          </div>
-          <button onclick="cerrarVotacion('${p.id}')" style="width:100%;padding:12px;border-radius:9px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--gold),#c9a000);color:#000;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px">
-            🔒 CERRAR VOTACIÓN Y ASIGNAR FIGURA
-          </button>`
-        : `<p style="font-size:11px;color:var(--dim);margin-bottom:10px">La votación aún no fue habilitada.</p>
-           <button onclick="abrirVotacion('${p.id}')" style="width:100%;padding:12px;border-radius:9px;cursor:pointer;border:1px solid var(--red);background:var(--red)15;color:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px">
-             🗳️ HABILITAR VOTACIÓN FIGURA
-           </button>`
-      }
-    </div>`;
-  }).join('');
-
-  // ── Recalcular ranking button ──────────────────────────────────────────────
-  const recalcBtn = `<button onclick="recalcularRanking()"
-    style="width:100%;padding:12px;border-radius:9px;cursor:pointer;border:1px solid #ff4444;background:#ff444415;color:#ff4444;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;margin-top:8px">
-    🔄 RECALCULAR RANKING DESDE CERO
-  </button>`;
-
-  const votingSection = votingCards ? `
-    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:18px;margin:16px 0 12px">⭐ FIGURA DEL PARTIDO</h2>
-    ${votingCards}` : '';
-
-  setContent(`<div class="screen up" style="padding:76px 15px 90px">
-    <button class="bk" onclick="go('/home')" style="margin-bottom:14px">← VOLVER</button>
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:16px">📊 CARGAR RESULTADO</h2>
-    ${cardsOrphaned}
-    ${cards||(!cardsOrphaned?'<p style="color:var(--dim);text-align:center;padding:20px 0">No hay partidos pendientes.</p>':'')}
-    ${votingSection}
-    ${recalcBtn}
-  </div>${renderNav()}`);
-}
-
-// Shared recalc logic used by cerrarVotacion and manual button
-async function _recalcularSilencioso() {
-  const [partidos, convs, torneos, equipos] = await Promise.all([
-    getAll('partidos'), getAll('convocatorias'),
-    getAll('torneos').catch(()=>[]),
-    getAll('equipos').catch(()=>[])
-  ]);
-  invalidateCache('ranking'); await _req('DELETE', '/ranking?id=neq.NONE');
-  const newRk = {};
-
-  for(const p of partidos) {
-    const torneo = torneos.find(t=>t.id===p.tid);
-    const isEquipoRanking = torneo?.ranking_tipo === 'equipo';
-    const pEa = Array.isArray(p.equipo_a) ? p.equipo_a : [];
-    const pEb = Array.isArray(p.equipo_b) ? p.equipo_b : [];
-    const cv = convs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
-    const cvEa = cv?.equipo_a||[], cvEb = cv?.equipo_b||[];
-    const ea = pEa.length ? pEa : cvEa;
-    const eb = pEb.length ? pEb : cvEb;
-    const jugaron = [...new Set([...ea,...eb])];
-    const gan = p.gan;
-    const ganadores = gan==='a'?ea:gan==='b'?eb:[];
-    const isEmpate = gan==='EMPATE';
-
-    if(isEquipoRanking) {
-      const torEquipos = equipos.filter(e=>e.tid===p.tid);
-      const eqA = torEquipos.find(e=>(e.jugadores||[]).some(jid=>ea.includes(jid)));
-      const eqB = torEquipos.find(e=>(e.jugadores||[]).some(jid=>eb.includes(jid)));
-      const eqGanador = gan==='a'?eqA:gan==='b'?eqB:null;
-      for(const eq of [eqA,eqB].filter(Boolean)) {
-        const key = 'eq_'+eq.id+'|'+p.tid;
-        if(!newRk[key]) newRk[key]={equipo_id:eq.id,equipo_nombre:eq.nombre,tid:p.tid,pts:0,g:0,c:0,f:0};
-        newRk[key].pts += 1; newRk[key].c += 1;
-        if(eqGanador?.id===eq.id){ newRk[key].pts+=3; newRk[key].g+=1; }
-        if(isEmpate) newRk[key].pts += 1;
-      }
-    } else {
-      for(const jid of jugaron) {
-        const key = jid+'|'+p.tid;
-        if(!newRk[key]) newRk[key]={jid,tid:p.tid,pts:0,g:0,c:0,f:0};
-        newRk[key].pts += 1; newRk[key].c += 1;
-        if(ganadores.includes(jid)){ newRk[key].pts+=3; newRk[key].g+=1; }
-        if(isEmpate) newRk[key].pts += 1;
-      }
-      if(p.fig) {
-        const key = p.fig+'|'+p.tid;
-        if(!newRk[key]) newRk[key]={jid:p.fig,tid:p.tid,pts:0,g:0,c:0,f:0};
-        newRk[key].pts += 2; newRk[key].f += 1;
-      }
-    }
-  }
-  await Promise.all(Object.values(newRk).map(row=>upsertRow('ranking',{
-    id:uid(), jid:row.equipo_id?null:row.jid, tid:row.tid,
-    pts:row.pts, g:row.g, c:row.c, f:row.f,
-    equipo_id:row.equipo_id||null, equipo_nombre:row.equipo_nombre||null
-  })));
-}
-
-window.recalcularRanking = async function() {
-  if(!confirm('¿Recalcular el ranking completo desde cero? Esto borrará los puntos actuales y los recalculará en base a los partidos guardados.')) return;
-  setContent(loading(tr('loading')));
-  try {
-    await _recalcularSilencioso();
-    alert('✅ Ranking recalculado correctamente.');
-    sMatch();
-  } catch(e){ alert('Error: '+_errMsg(e)); }
-};
-window.abrirVotacion = async function(pid) {
-  try {
-    const [partidos, convs] = await Promise.all([getAll('partidos'), getAll('convocatorias')]);
-    const p = partidos.find(x=>x.id===pid); if(!p) return;
-    // Mark convocatoria as finalizado if not already
-    const cv = convs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
-    if(cv && cv.estado!=='finalizado') {
-      await upsertRow('convocatorias', {...cv, estado:'finalizado'});
-    }
-    await upsertRow('partidos', {...p, votacion_abierta:true});
-    sMatch();
-  } catch(e){ alert('Error: '+_errMsg(e)); }
-};
-
-window.cerrarVotacion = async function(pid) {
-  try {
-    const [partidos, ranking, convs] = await Promise.all([getAll('partidos'), getAll('ranking').catch(()=>[]), getAll('convocatorias').catch(()=>[])]);
-    const p = partidos.find(x=>x.id===pid); if(!p) return;
-    // Ensure convocatoria is finalizado
-    const cvC = convs.find(cv=>cv.tid===p.tid&&cv.fecha===p.fecha);
-    if(cvC && cvC.estado!=='finalizado') {
-      await upsertRow('convocatorias', {...cvC, estado:'finalizado'});
-    }
-    const votos = p.votos_figura||[];
-    // Tally — support both old {voter,fig} and new {jid,voto} formats
-    const tally = {};
-    votos.forEach(v=>{ const votado=v.voto||v.fig; if(votado) tally[votado]=(tally[votado]||0)+1; });
-    const entries = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
-    if(entries.length===0){ alert('No hay votos todavía.'); return; }
-    const maxVotos = entries[0][1];
-    const ganadores = entries.filter(([,v])=>v===maxVotos).map(([jid])=>jid);
-    // 2 pts split among tied winners (floor if odd)
-    const ptsPorFig = Math.floor(2/ganadores.length) || 1;
-    // Ranking de figura se actualiza via recalcularRanking
-    // Save fig (first winner) and close voting
-    await upsertRow('partidos', {...p, votacion_abierta:false, fig: ganadores[0]});
-    // Auto recalcular ranking
-    await _recalcularSilencioso();
-    sMatch();
-  } catch(e){ alert('Error: '+_errMsg(e)); }
-};
-
-window.selResult = function(cvid, gan) {
-  if(!window._matchResults) return;
-  window._matchResults[cvid].gan = gan;
-  const cv = window._matchConvs[cvid];
-  if(!cv) return;
-  const ta = cv.equipo_a_nombre||'A', tb = cv.equipo_b_nombre||'B';
-  const teamA = TEAMS[ta]||TEAMS['AJAX'], teamB = TEAMS[tb]||TEAMS['ROMA'];
-  // Update button styles
-  const opts = [{id:`res-${cvid}-a`, active: gan==='a', color:teamA.color, label:`🏆 ${ta}`},
-                {id:`res-${cvid}-empate`, active: gan==='empate', color:'#00ff88', label:'🤝 EMPATE'},
-                {id:`res-${cvid}-b`, active: gan==='b', color:teamB.color, label:`🏆 ${tb}`}];
-  opts.forEach(o=>{
-    var el=document.getElementById(o.id); if(!el) return;
-    el.style.border = o.active ? `1.5px solid ${o.color}` : `1.5px solid ${o.color}60`;
-    el.style.background = o.active ? o.color+'40' : o.color+'15';
-    el.style.color = o.color;
-    el.style.transform = o.active ? 'scale(1.04)' : 'scale(1)';
-    el.style.boxShadow = o.active ? `0 0 12px ${o.color}40` : 'none';
-  });
-};
-
-window.selFig = function(cvid, jid) {
-  if(!window._matchResults) return;
-  window._matchResults[cvid].fig = jid;
-  const cv = window._matchConvs[cvid]; if(!cv) return;
-  const allJids = [...(cv.equipo_a||[]), ...(cv.equipo_b||[])];
-  // Reset all fig buttons for this conv
-  var nullBtn = document.getElementById(`fig-${cvid}-null`);
-  if(nullBtn){ nullBtn.style.border=jid===null?'1.5px solid var(--gold)':'1.5px solid #2a2a3e'; nullBtn.style.background=jid===null?'rgba(255,215,0,0.12)':'transparent'; nullBtn.style.color=jid===null?'var(--gold)':'var(--dim)'; }
-  allJids.forEach(function(id){
-    var el=document.getElementById(`fig-${cvid}-${id}`); if(!el) return;
-    var active = id===jid;
-    el.style.border = active?'1.5px solid var(--gold)':'1.5px solid #2a2a3e';
-    el.style.background = active?'rgba(255,215,0,0.12)':'transparent';
-    el.style.color = active?'var(--gold)':'var(--dim)';
-  });
-};
-
-window.guardarResultado = async function(cvid) {
-  const res = window._matchResults[cvid]||{};
-  if(!res.gan){ alert('Elegí el resultado primero.'); return; }
-  // Always fetch fresh from DB to get accurate equipo_a/equipo_b
-  let cv = window._matchConvs[cvid];
-  try {
-    const freshConvs = await getAll('convocatorias');
-    const fresh = freshConvs.find(x=>x.id===cvid);
-    if(fresh) cv = fresh;
-  } catch(e) {}
-  if(!cv){ alert('No se encontró la convocatoria.'); return; }
-  const jMap = window._matchJs||{};
-  const ea = cv.equipo_a||[], eb = cv.equipo_b||[];
-  // Only players who were IN a team get points
-  const jugaron = [...new Set([...ea, ...eb])];
-  const ganadores = res.gan==='a' ? ea : res.gan==='b' ? eb : [];
-
-  // Ranking: jugó +1, ganó +3, empate +1. Figura (+2) goes after voting.
-  const updates = {};
-  jugaron.forEach(jid=>{ updates[jid] = 1; });                          // +1 por jugar
-  ganadores.forEach(jid=>{ updates[jid] = (updates[jid]||0) + 3; });   // +3 por ganar
-  if(res.gan==='empate') jugaron.forEach(jid=>{ updates[jid] = (updates[jid]||0) + 1; }); // +1 extra por empate
-
-  try {
-    const pid = uid();
-    // Mark convocatoria as 'finalizado' so it disappears from upcoming
-    await upsertRow('convocatorias', {...cv, estado:'finalizado'});
-    const votacionCierre = Date.now() + (24 * 60 * 60 * 1000); // 24hs
-    await upsertRow('partidos', {
-      id: pid,
-      tid: cv.tid,
-      fecha: cv.fecha,
-      conv: jugaron,
-      equipo_a: ea,
-      equipo_b: eb,
-      gan: res.gan==='empate' ? tr('draw') : res.gan,
-      fig: null,
-      votos_figura: [],
-      votacion_abierta: true,
-      votacion_cierre: votacionCierre
-    });
-
-    // Ranking se actualiza solo via recalcularRanking
-
-    var btn = document.querySelector(`[onclick="guardarResultado('${cvid}')"]`);
-    if(btn){ btn.textContent='✅ GUARDADO'; btn.style.background='linear-gradient(135deg,#00ff88,#00cc66)'; btn.disabled=true; }
-    delete window._matchConvs[cvid];
-    setTimeout(()=>sMatch(), 1500);
-  } catch(e) {
-    alert('Error al guardar: ' + _errMsg(e));
-  }
-};
-
-
-
-
 // ═══════ AYUDA ═══════
 async function sAyuda() {
   const isAdmin = ME?.admin;
@@ -4571,40 +4109,93 @@ async function sMatchJugador() {
     </div>`;
   }).join('');
 
-  // Played partido cards
-  const partidoCards = tPartidos.map(p=>{
+  // Build fixture list — all dates sorted ascending
+  const fixture = fixtureFor ? fixtureFor(torneo) : [];
+  const allFechas = fixture.length
+    ? fixture
+    : [...new Set([...tPartidos.map(p=>p.fecha), ...upcoming.map(cv=>cv.fecha)])].sort();
+
+  // Played partido cards — fixture style
+  const partidoCards = allFechas.map((fecha, i)=>{
+    const p = tPartidos.find(x=>x.fecha===fecha);
+    const cv = convs.find(x=>x.tid===torneo.id&&x.fecha===fecha);
+    const d = parseFecha(fecha);
+    const jNum = `J${i+1}`;
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const fechaStr = d ? `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}` : fecha;
+    const today2 = new Date(); today2.setHours(0,0,0,0);
+    const isFuture = d && d > today2;
+    const isToday = d && d.getTime()===today2.getTime();
+
+    if(p) {
+      // Played — show result
+      const res = getPlayerResult(p);
+      const isFig = p.fig === ME?.jid;
+      const resultLabel = isFig ? 'FIGURA ⭐' : res.label;
+      const resultColor = isFig ? 'var(--gold)' : res.color;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;color:var(--dim);min-width:28px">${jNum}</div>
+        <div style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--white)">${fechaStr}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;color:${resultColor};background:${resultColor}18;border:1px solid ${resultColor}40;padding:3px 10px;border-radius:6px;letter-spacing:1px">${resultLabel}</div>
+      </div>`;
+    } else if(!isFuture && !isToday) {
+      // Past but no partido data — ausente
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;color:var(--dim);min-width:28px">${jNum}</div>
+        <div style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--dim)">${fechaStr}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;color:var(--dim);padding:3px 10px">—</div>
+      </div>`;
+    } else {
+      // Future or today — show convocatoria status
+      const myEst = cv ? (cv.convocados_estado||[]).find(x=>x.jid===ME?.jid)?.estado : null;
+      const isConfirmado = cv?.estado==='confirmado';
+      const statusColor = isConfirmado ? 'var(--green)' : myEst==='convocado' ? 'var(--red)' : 'var(--dim)';
+      const statusLabel = isConfirmado ? 'CONFIRMADO' : myEst==='convocado' ? 'APUNTADO' : isToday?'HOY':'PRÓXIMO';
+      const isActive = isToday || (d && Math.abs(diasHasta(fecha))<=2);
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04)${isActive?';background:rgba(255,32,32,0.05)':''}">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;color:${isActive?'var(--red)':'var(--dim)'};min-width:28px">${jNum}</div>
+        <div style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:${isActive?'900':'700'};font-size:14px;color:${isActive?'var(--white)':'var(--muted)'}">${fechaStr}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;color:${statusColor};letter-spacing:1px">${statusLabel}</div>
+      </div>`;
+    }
+  }).join('');
+
+  // Legacy fallback for tPartidos not in fixture
+  const extraPartidos = tPartidos.filter(p=>!allFechas.includes(p.fecha));
+  const extraCards = extraPartidos.map(p=>{
     const res = getPlayerResult(p);
     const d = parseFecha(p.fecha);
-    const figJ = p.fig ? jMap[p.fig] : null;
-    return `<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
-      <div style="text-align:center;min-width:44px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;color:${res.color}">${d?d.getDate():'-'}</div>
-        <div style="font-size:9px;color:var(--dim);text-transform:uppercase">${d?['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]:''}</div>
-      </div>
-      <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;color:${res.color};background:${res.color}18;padding:3px 8px;border-radius:6px">${res.code}</span>
-          ${res.fig ? '<span style="font-size:14px" title="Figura del partido">⭐</span>' : ''}
-        </div>
-        ${figJ ? `<div style="font-size:10px;color:var(--dim);margin-top:3px">⭐ Figura: ${figJ.nombre}</div>` : ''}
-      </div>
-      <div style="text-align:right;font-size:11px;color:var(--dim)">${p.gan==='a'?'A ganó':p.gan==='b'?'B ganó':p.gan||''}</div>
+    const isFig = p.fig === ME?.jid;
+    const resultLabel = isFig ? 'FIGURA ⭐' : res.label;
+    const resultColor = isFig ? 'var(--gold)' : res.color;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;color:var(--dim);min-width:28px">—</div>
+      <div style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--white)">${d?['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()]+' '+d.getDate()+' '+['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]:p.fecha}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;color:${resultColor};background:${resultColor}18;border:1px solid ${resultColor}40;padding:3px 10px;border-radius:6px">${resultLabel}</div>
     </div>`;
   }).join('');
 
+  const xPlayed = tPartidos.length;
+  const xTotal = allFechas.length;
+  
+
   setContent(`<div class="screen up" style="padding:48px 16px 90px;background:transparent">
+    <!-- Header -->
     <div style="margin-bottom:16px">
-      <p style="font-size:10px;color:${color};font-weight:800;letter-spacing:3px">⚽ ${tr('matches')}</p>
-      <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:22px">${torneo.nombre}</h2>
+      <p style="font-size:10px;color:var(--red);font-weight:900;letter-spacing:4px;text-transform:uppercase">⚽ ${tr('matches')}</p>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px">${torneo.nombre}</h2>
     </div>
-    ${upcoming.length ? `
-      <p style="font-size:10px;font-weight:900;color:var(--dim);letter-spacing:2px;margin-bottom:8px">PRÓXIMOS</p>
-      ${upcomingCards}
-    ` : ''}
-    ${tPartidos.length ? `
-      <p style="font-size:10px;font-weight:900;color:var(--dim);letter-spacing:2px;margin:12px 0 8px">JUGADOS</p>
-      ${partidoCards}
-    ` : '<p style="color:var(--dim);text-align:center;padding:20px">No hay partidos jugados aún.</p>'}
+    <!-- Upcoming convocatoria card (if any) -->
+    ${upcomingCards}
+    <!-- Fixture with results -->
+    <div style="background:var(--card);border:1px solid var(--bdr2);border-radius:14px;overflow:hidden;margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bdr2)">
+        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:3px;color:var(--red)">📋 FIXTURE</p>
+        <p style="font-size:11px;color:var(--dim)">${xPlayed}/${xTotal} jugados</p>
+      </div>
+      ${partidoCards}${extraCards}
+    </div>
   </div>${renderNav()}`);
 }
 
