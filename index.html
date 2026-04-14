@@ -2658,13 +2658,14 @@ function renderConv() {
     </div>`;
   }
 
-  const canConfirm = !isConfirmado && ea.length===8 && eb.length===8;
+  const jpe = t.jugadores_por_equipo || 8;
+  const canConfirm = !isConfirmado && ea.length===jpe && eb.length===jpe;
   const convocarTodosBtn = !isConfirmado
     ? `<button onclick="convocarATodos()" style="width:100%;padding:11px;border-radius:9px;cursor:pointer;border:1px solid #00d4ff;background:#00d4ff15;color:#00d4ff;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;margin-bottom:8px">✋ CONVOCAR A TODOS</button>`
     : `<button onclick="revertirPartido()" style="width:100%;padding:11px;border-radius:9px;cursor:pointer;border:1px solid var(--red);background:var(--red)15;color:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;margin-bottom:8px">🔄 VOLVER A CONVOCATORIA EN PROCESO</button>`;
   const confirmBtn = canConfirm
     ? `<button onclick="confirmarConvocatoria()" style="width:100%;padding:14px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,#00ff88,#00cc66);color:#000;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:2px;margin-top:4px">✅ CONFIRMAR PARTIDO</button>`
-    : `<p style="text-align:center;color:var(--dim);font-size:12px;margin-top:8px">Necesitás 8 en cada equipo · ${ea.length}/8 — ${eb.length}/8</p>`;
+    : `<p style="text-align:center;color:var(--dim);font-size:12px;margin-top:8px">Necesitás ${jpe} en cada equipo · ${ea.length}/${jpe} — ${eb.length}/${jpe}</p>`;
 
   const horaInput = !isConfirmado ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
     <label class="lbl" style="margin:0;white-space:nowrap">HORA:</label>
