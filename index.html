@@ -2659,6 +2659,7 @@ function renderConv() {
   }
 
   const jpe = t.jugadores_por_equipo || 8;
+  console.log('[DEBUG] jpe=',jpe,'ea=',ea.length,'eb=',eb.length,'isConfirmado=',isConfirmado,'t=',t);
   const canConfirm = !isConfirmado && ea.length===jpe && eb.length===jpe;
   const convocarTodosBtn = !isConfirmado
     ? `<button onclick="convocarATodos()" style="width:100%;padding:11px;border-radius:9px;cursor:pointer;border:1px solid #00d4ff;background:#00d4ff15;color:#00d4ff;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;margin-bottom:8px">✋ CONVOCAR A TODOS</button>`
