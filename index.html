@@ -4014,6 +4014,83 @@ window.emitirVoto = async function(pid, votadoJid) {
 
 
 // ═══════ sMatchJugador — player's match history ═══════
+async function sMatch() {
+  if(!ME?.admin){ go('/home'); return; }
+  setContent(loading('Cargando partidos...'));
+  const [ts, allJs, convs, partidos] = await Promise.all([
+    getAll('torneos').catch(()=>[]),
+    getJugadores(false).catch(()=>[]),
+    getAll('convocatorias').catch(()=>[]),
+    getAll('partidos').catch(()=>[])
+  ]);
+  const jMap = {};
+  allJs.forEach(j=>jMap[j.id]=j);
+  const now = Date.now();
+
+  // Convocatorias confirmed but no result yet
+  const convsPend = convs.filter(cv => {
+    if(cv.estado !== 'confirmado') return false;
+    return !partidos.some(p => p.tid===cv.tid && p.fecha===cv.fecha);
+  }).sort((a,b)=>(parseFecha(b.fecha)||new Date(0))-(parseFecha(a.fecha)||new Date(0)));
+
+  // Partidos with open voting or pending figura
+  const sinFig = partidos.filter(p => !p.fig && (p.votacion_abierta || (p.votos_figura||[]).length > 0 || (p.equipo_a||[]).length > 0));
+
+  function renderFigCard(p) {
+    const t = ts.find(x=>x.id===p.tid)||{emoji:'⚽',nombre:''};
+    const votos = p.votos_figura||[];
+    const tally = {};
+    votos.forEach(v=>{ const vt=v.voto||v.fig; if(vt) tally[vt]=(tally[vt]||0)+1; });
+    const entries = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+    const horasLeft = p.votacion_cierre ? Math.max(0,Math.round((p.votacion_cierre-now)/3600000)) : null;
+    const rows = entries.length
+      ? entries.map(([jid,cnt])=>{
+          const nm = jMap[jid]?.nombre||jid;
+          return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bdr)">'
+            + '<span style="font-size:13px;color:var(--txt)">'+nm+'</span>'
+            + '<span style="font-size:13px;font-weight:900;color:var(--red)">'+cnt+' voto'+(cnt!==1?'s':'')+'</span>'
+            + '</div>';
+        }).join('')
+      : '<p style="font-size:12px;color:var(--dim)">Sin votos aún</p>';
+    const label = p.votacion_abierta
+      ? '🗳️ VOTACIÓN ABIERTA · '+votos.length+' voto'+(votos.length!==1?'s':'')+(horasLeft!==null?' · ⏱ '+horasLeft+'h':'')
+      : '📊 '+votos.length+' votos registrados';
+    return '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:14px;margin-bottom:12px">'
+      + '<p style="font-size:11px;color:var(--red);font-weight:900;letter-spacing:2px;margin-bottom:4px">'+t.emoji+' '+fmtFecha(parseFecha(p.fecha))+'</p>'
+      + '<p style="font-size:13px;color:var(--muted);margin-bottom:10px">'+label+'</p>'
+      + rows
+      + '<button onclick="cerrarVotacionAdmin(\''+p.id+'\')" style="width:100%;margin-top:10px;padding:12px;border-radius:8px;cursor:pointer;border:none;background:linear-gradient(135deg,#ffd700,#c9a800);color:#000;font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:14px;letter-spacing:2px">🏆 CERRAR VOTACIÓN Y ASIGNAR FIGURA</button>'
+      + '</div>';
+  }
+
+  function renderPendCard(cv) {
+    const t = ts.find(x=>x.id===cv.tid)||{emoji:'⚽',nombre:''};
+    const tot = (cv.equipo_a||[]).length + (cv.equipo_b||[]).length;
+    return '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="go(\'/convocatoria\',{tid:\''+cv.tid+'\',fecha:\''+cv.fecha+'\'})">'
+      + '<p style="font-size:11px;color:var(--red);font-weight:900;letter-spacing:2px">'+t.emoji+' '+t.nombre+'</p>'
+      + '<p style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:2px;color:var(--txt)">'+fmtFecha(parseFecha(cv.fecha))+'</p>'
+      + '<p style="font-size:11px;color:var(--muted);margin-top:4px">'+tot+' jugadores convocados</p>'
+      + '</div>';
+  }
+
+  const pendHtml = convsPend.length
+    ? convsPend.map(renderPendCard).join('')
+    : '<p style="font-size:13px;color:var(--dim);text-align:center;margin-bottom:16px">No hay partidos pendientes.</p>';
+
+  const figHtml = sinFig.length
+    ? '<p class="lbl" style="margin-top:4px;margin-bottom:10px">⭐ FIGURA DEL PARTIDO</p>' + sinFig.map(renderFigCard).join('')
+    : '';
+
+  setContent('<div class="screen up" style="padding:44px 15px 18px">'
+    + '<button class="bk" onclick="go(\'/match\')">← VOLVER</button>'
+    + '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:3px;margin-bottom:16px">📊 CARGAR RESULTADO</h2>'
+    + '<p class="lbl" style="margin-bottom:10px">PRÓXIMOS PARTIDOS</p>'
+    + pendHtml
+    + figHtml
+    + '</div>');
+}
+
+
 async function sMatchJugador() {
   setContent(loading(tr('loading')));
   const [ts, partidos, convs, js] = await Promise.all([
