@@ -850,6 +850,7 @@ async function render(){
     if(R==='/match'){await sProximos();return;}
     if(R==='/convocatoria'){await sConvocatoria(RP);return;}
     if(R==='/cargar-resultado'){await sMatch();return;}
+    if(R==='/resultado-form'){await sResultadoForm(RP);return;}
     if(R==='/ayuda'){await sAyuda();return;}
     R='/home';await sHome();
   }catch(e){
@@ -4049,10 +4050,11 @@ async function sMatch() {
   function renderPendCard(cv) {
     const t = ts.find(x=>x.id===cv.tid)||{emoji:'⚽',nombre:''};
     const tot = (cv.equipo_a||[]).length + (cv.equipo_b||[]).length;
-    return '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="go(\'/convocatoria\',{tid:\''+cv.tid+'\',fecha:\''+cv.fecha+'\'})">'
+    return '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:14px;margin-bottom:10px">'
       + '<p style="font-size:11px;color:var(--red);font-weight:900;letter-spacing:2px">'+t.emoji+' '+t.nombre+'</p>'
       + '<p style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:2px;color:var(--txt)">'+fmtFecha(parseFecha(cv.fecha))+'</p>'
-      + '<p style="font-size:11px;color:var(--muted);margin-top:4px">'+tot+' jugadores convocados</p>'
+      + '<p style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:12px">'+tot+' jugadores convocados</p>'
+      + '<button onclick="window._pendCv={tid:\''+cv.tid+'\',fecha:\''+cv.fecha+'\',cvid:\''+cv.id+'\',equipo_a:'+JSON.stringify(cv.equipo_a||[])+',equipo_b:'+JSON.stringify(cv.equipo_b||[])+',equipo_a_nombre:\''+( cv.equipo_a_nombre||'A')+'\',equipo_b_nombre:\''+( cv.equipo_b_nombre||'B')+'\',convocados:'+JSON.stringify(cv.convocados_estado||[])+'}; go(\'/resultado-form\')" style="width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:14px;letter-spacing:2px;cursor:pointer">📊 CARGAR RESULTADO</button>'
       + '</div>';
   }
 
@@ -4072,6 +4074,83 @@ async function sMatch() {
     + figHtml
     + '</div>');
 }
+
+
+async function sResultadoForm(p) {
+  if(!ME?.admin){ go('/home'); return; }
+  const cv = window._pendCv || {};
+  const [ts, allJs] = await Promise.all([
+    getAll('torneos').catch(()=>[]),
+    getJugadores(false).catch(()=>[])
+  ]);
+  const jMap = {}; allJs.forEach(j=>jMap[j.id]=j);
+  const t = ts.find(x=>x.id===cv.tid)||{emoji:'⚽',nombre:'Torneo'};
+
+  // Build jugadores list from equipo_a and equipo_b
+  const eqA = cv.equipo_a||[];
+  const eqB = cv.equipo_b||[];
+  const allJug = [...new Set([...eqA,...eqB])];
+
+  const jugOpts = allJug.map(jid => {
+    const j = jMap[jid]; if(!j) return '';
+    return '<option value="'+jid+'">'+j.nombre+'</option>';
+  }).join('');
+
+  setContent('<div class="screen up" style="padding:44px 15px 90px">'+
+    '<button class="bk" onclick="go(\'/cargar-resultado\')">← VOLVER</button>'+
+    '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:3px;margin-bottom:4px">CARGAR RESULTADO</h2>'+
+    '<p style="font-size:13px;color:var(--muted);margin-bottom:20px">'+t.emoji+' '+fmtFecha(parseFecha(cv.fecha))+'</p>'+
+
+    '<label class="lbl">EQUIPO GANADOR</label>'+
+    '<select id="rf-gan" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--bdr2);background:var(--surf);color:var(--white);font-size:14px;margin-bottom:16px;font-family:\'Barlow\',sans-serif">'+
+      '<option value="">-- Seleccioná --</option>'+
+      '<option value="equipo_a">'+(cv.equipo_a_nombre||'Equipo A')+'</option>'+
+      '<option value="equipo_b">'+(cv.equipo_b_nombre||'Equipo B')+'</option>'+
+      '<option value="empate">Empate</option>'+
+    '</select>'+
+
+    '<label class="lbl">FIGURA DEL PARTIDO</label>'+
+    '<select id="rf-fig" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--bdr2);background:var(--surf);color:var(--white);font-size:14px;margin-bottom:24px;font-family:\'Barlow\',sans-serif">'+
+      '<option value="">-- Seleccioná --</option>'+
+      jugOpts+
+    '</select>'+
+
+    '<button onclick="window.guardarResultadoForm()" class="btn btn-gold" style="letter-spacing:2px">💾 GUARDAR PARTIDO</button>'+
+  '</div>');
+}
+
+window.guardarResultadoForm = async function() {
+  const cv = window._pendCv || {};
+  const gan = document.getElementById('rf-gan')?.value;
+  const fig = document.getElementById('rf-fig')?.value;
+  if(!gan){ alert('Seleccioná el equipo ganador'); return; }
+  if(!fig){ alert('Seleccioná la figura del partido'); return; }
+  try {
+    const id = 'p_'+Date.now().toString(36);
+    const eqA = cv.equipo_a||[];
+    const eqB = cv.equipo_b||[];
+    const allConv = [...new Set([...eqA,...eqB])];
+    const cierre = Date.now() + 24*3600*1000;
+    await upsertRow('partidos', {
+      id, tid:cv.tid, fecha:cv.fecha,
+      gan, fig:null,
+      equipo_a:eqA, equipo_b:eqB,
+      equipo_a_nombre:cv.equipo_a_nombre||'A',
+      equipo_b_nombre:cv.equipo_b_nombre||'B',
+      conv:allConv,
+      votos_figura:[],
+      votacion_abierta:true,
+      votacion_cierre:cierre,
+      fig_sugerida:fig
+    });
+    // Update ranking
+    await _recalcularSilencioso(cv.tid);
+    invalidateCache('partidos');
+    invalidateCache('ranking');
+    alert('✅ Resultado guardado. Votación de figura abierta por 24hs.');
+    go('/cargar-resultado');
+  } catch(e){ alert('Error: '+_errMsg(e)); }
+};
 
 
 async function sMatchJugador() {
