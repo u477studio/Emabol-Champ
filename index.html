@@ -4047,6 +4047,9 @@ async function sMatch() {
       + '</div>';
   }
 
+  // Store all pending convs for lookup by id
+  window._allPendCvs = convsPend;
+
   function renderPendCard(cv) {
     const t = ts.find(x=>x.id===cv.tid)||{emoji:'⚽',nombre:''};
     const tot = (cv.equipo_a||[]).length + (cv.equipo_b||[]).length;
@@ -4054,7 +4057,7 @@ async function sMatch() {
       + '<p style="font-size:11px;color:var(--red);font-weight:900;letter-spacing:2px">'+t.emoji+' '+t.nombre+'</p>'
       + '<p style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:2px;color:var(--txt)">'+fmtFecha(parseFecha(cv.fecha))+'</p>'
       + '<p style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:12px">'+tot+' jugadores convocados</p>'
-      + '<button onclick="window._pendCv={tid:\''+cv.tid+'\',fecha:\''+cv.fecha+'\',cvid:\''+cv.id+'\',equipo_a:'+JSON.stringify(cv.equipo_a||[])+',equipo_b:'+JSON.stringify(cv.equipo_b||[])+',equipo_a_nombre:\''+( cv.equipo_a_nombre||'A')+'\',equipo_b_nombre:\''+( cv.equipo_b_nombre||'B')+'\',convocados:'+JSON.stringify(cv.convocados_estado||[])+'}; go(\'/resultado-form\')" style="width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:14px;letter-spacing:2px;cursor:pointer">📊 CARGAR RESULTADO</button>'
+      + '<button onclick="window.abrirResultadoForm(\''+cv.id+'\')" style="width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:14px;letter-spacing:2px;cursor:pointer">📊 CARGAR RESULTADO</button>'
       + '</div>';
   }
 
@@ -4076,6 +4079,13 @@ async function sMatch() {
 }
 
 
+window.abrirResultadoForm = function(cvid) {
+  const cv = (window._allPendCvs||[]).find(x=>x.id===cvid);
+  if(!cv){ alert('No se encontró la convocatoria'); return; }
+  window._pendCv = cv;
+  go('/resultado-form');
+};
+
 async function sResultadoForm(p) {
   if(!ME?.admin){ go('/home'); return; }
   const cv = window._pendCv || {};
@@ -4086,10 +4096,11 @@ async function sResultadoForm(p) {
   const jMap = {}; allJs.forEach(j=>jMap[j.id]=j);
   const t = ts.find(x=>x.id===cv.tid)||{emoji:'⚽',nombre:'Torneo'};
 
-  // Build jugadores list from equipo_a and equipo_b
+  // Build jugadores list from equipo_a, equipo_b, or convocados_estado
   const eqA = cv.equipo_a||[];
   const eqB = cv.equipo_b||[];
-  const allJug = [...new Set([...eqA,...eqB])];
+  const fromConvocados = Object.keys(cv.convocados_estado||{});
+  const allJug = [...new Set([...eqA,...eqB,...fromConvocados])].filter(Boolean);
 
   const jugOpts = allJug.map(jid => {
     const j = jMap[jid]; if(!j) return '';
