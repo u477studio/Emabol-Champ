@@ -1370,6 +1370,9 @@ async function sHome(){
         <div onclick="go('/cargar-resultado')" style="background:var(--card);border:1px solid #00d4ff30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">📊</span><div><p style="font-size:12px;font-weight:900;color:#00d4ff;font-family:'Barlow Condensed',sans-serif">RESULTADO</p><p style="font-size:10px;color:var(--dim)">Cargar partido</p></div>
         </div>
+        <div onclick="window.recalcularRanking('${CURRENT_TORNEO?.id||'t1'}')" style="background:var(--card);border:1px solid var(--red)30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px;grid-column:1/-1">
+          <span style="font-size:20px">🔄</span><div><p style="font-size:12px;font-weight:900;color:var(--red);font-family:'Barlow Condensed',sans-serif">RECALCULAR RANKING</p><p style="font-size:10px;color:var(--dim)">Recalcular desde partidos</p></div>
+        </div>
       </div>
     </div>`:'';
 
@@ -4017,6 +4020,63 @@ window.cerrarVotacionAdmin = async function(pid) {
     invalidateCache('partidos');
     alert('✅ Figura asignada correctamente.');
     await sMatch();
+  } catch(e) { alert('Error: ' + _errMsg(e)); }
+};
+
+
+// ── Recalcular Ranking desde partidos ────────────────────────────────────────
+window.recalcularRanking = async function(tid) {
+  try {
+    const [partidos, jugadores] = await Promise.all([
+      getAll('partidos'),
+      getJugadores(false)
+    ]);
+    const tPartidos = partidos.filter(p => !tid || p.tid === tid);
+    if(!tPartidos.length) { alert('No hay partidos cargados para recalcular.'); return; }
+
+    // Build stats per jugador per torneo
+    const stats = {}; // key: jid+'_'+tid
+    const key = (jid, t) => jid + '_' + t;
+
+    tPartidos.forEach(p => {
+      const eqA = p.equipo_a || [];
+      const eqB = p.equipo_b || [];
+      const todos = [...new Set([...eqA, ...eqB])];
+      todos.forEach(jid => {
+        const k = key(jid, p.tid);
+        if(!stats[k]) stats[k] = {jid, tid:p.tid, g:0, c:0, f:0, pts:0};
+        stats[k].c++;
+        // Ganó
+        const gano = (p.gan==='equipo_a' && eqA.includes(jid)) ||
+                     (p.gan==='equipo_b' && eqB.includes(jid));
+        // Empató
+        const empato = p.gan === 'empate';
+        if(gano)   { stats[k].g++; stats[k].pts += 4; }
+        else if(empato) { stats[k].pts += 2; }
+        // Participó
+        stats[k].pts += 1;
+        // Figura
+        if(p.fig === jid) { stats[k].f++; stats[k].pts += 2; }
+      });
+    });
+
+    // Upsert each row
+    const rows = Object.values(stats);
+    for(const row of rows) {
+      // Use jid+tid as id for upsert
+      await upsertRow('ranking', {
+        id: row.jid + '_' + row.tid,
+        jid: row.jid,
+        tid: row.tid,
+        pts: row.pts,
+        g:   row.g,
+        c:   row.c,
+        f:   row.f
+      });
+    }
+    invalidateCache('ranking');
+    alert('✅ Ranking recalculado correctamente (' + rows.length + ' registros).');
+    go('/ranking');
   } catch(e) { alert('Error: ' + _errMsg(e)); }
 };
 
