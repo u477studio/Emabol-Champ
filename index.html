@@ -4060,10 +4060,15 @@ window.recalcularRanking = async function(tid) {
       });
     });
 
-    // Upsert each row
+    // Delete existing ranking rows for this torneo then reinsert
     const rows = Object.values(stats);
+    const existingRk = await getAll('ranking');
+    const toDelete = existingRk.filter(r => !tid || r.tid === tid);
+    for(const r of toDelete) {
+      await _req('DELETE', '/ranking?id=eq.' + encodeURIComponent(r.id), null);
+    }
+    // Insert fresh rows
     for(const row of rows) {
-      // Use jid+tid as id for upsert
       await upsertRow('ranking', {
         id: row.jid + '_' + row.tid,
         jid: row.jid,
