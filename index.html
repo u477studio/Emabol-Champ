@@ -4049,19 +4049,21 @@ window.recalcularRanking = async function(tid) {
         // Ganó
         const gano = (p.gan==='equipo_a' && eqA.includes(jid)) ||
                      (p.gan==='equipo_b' && eqB.includes(jid));
-        // Empató
         const empato = p.gan === 'empate';
-        if(gano)   { stats[k].g++; stats[k].pts += 4; }
-        else if(empato) { stats[k].pts += 2; }
-        // Participó
+        // +1 participar
         stats[k].pts += 1;
-        // Figura
+        // +3 ganar
+        if(gano)   { stats[k].g++; stats[k].pts += 3; }
+        // +1 empatar
+        else if(empato) { stats[k].pts += 1; }
+        // +2 figura
         if(p.fig === jid) { stats[k].f++; stats[k].pts += 2; }
       });
     });
 
     // Delete existing ranking rows for this torneo then reinsert
     const rows = Object.values(stats);
+    invalidateCache('ranking');
     const existingRk = await getAll('ranking');
     const toDelete = existingRk.filter(r => !tid || r.tid === tid);
     for(const r of toDelete) {
