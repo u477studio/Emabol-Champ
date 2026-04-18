@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_27.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_28.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -233,7 +233,7 @@ table{width:100%;border-collapse:collapse}
 th{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;padding:8px 4px;border-bottom:1px solid var(--bdr2)}
 td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/1c23253a-94b7-4542-98a0-b1d1a4364d8f"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/c00d1a39-4bfe-4aee-84a4-240f26edf20e"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1360,7 +1360,7 @@ async function sHome(){
     const fechaFinal = (dias < 0 && !conv) ? proximoPartido(t) : fecha;
     const diasFinal  = (dias < 0 && !conv) ? diasHasta(fechaFinal) : dias;
     // Badge estado partido
-    const myEstH = ME&&!ME.admin&&conv
+    const myEstH = ME&&(!ME.admin||ME.jid)&&conv
       ? ((conv.convocados_estado||[]).find(x=>x.jid===ME.jid)?.estado||'no_convocado')
       : null;
     let badge='';
@@ -1387,7 +1387,8 @@ async function sHome(){
       myStatus=`<div style="display:flex;align-items:center;gap:8px;background:#2a2a3e;border:1px solid var(--bdr2);border-radius:8px;padding:8px 12px;margin-top:10px"><span>🪑</span><span style="font-size:12px;font-weight:800;color:var(--dim);font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px">${tr('no_convoked')}</span></div>`;
 
     // CTA
-    const myEstCTA = ME&&!ME.admin&&conv
+    // Admin with jid is also a player — show their conv status
+    const myEstCTA = ME&&(!ME.admin||ME.jid)&&conv
       ? ((conv.convocados_estado||[]).find(x=>x.jid===ME.jid)?.estado||'no_convocado')
       : null;
     let cta='';
