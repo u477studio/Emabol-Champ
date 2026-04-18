@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_26.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_27.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -233,7 +233,7 @@ table{width:100%;border-collapse:collapse}
 th{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;padding:8px 4px;border-bottom:1px solid var(--bdr2)}
 td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/db675888-4523-4170-9f1a-575930d4fd8d"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/1c23253a-94b7-4542-98a0-b1d1a4364d8f"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1396,8 +1396,12 @@ async function sHome(){
         // No active convocatoria — show HABILITAR button
         cta=`<button onclick="go('/habilitar-fechas',{tid:'${t.id}'})" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid ${color};background:${color}15;color:${color};font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px">📅 HABILITAR FECHAS</button>`;
       } else {
-        cta=`<button onclick="go('/convocatoria',{tid:'${t.id}',fecha:'${conv.fecha}'})" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid ${color};background:${color}15;color:${color};font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px">${conv.estado==='confirmado'?'👁 VER EQUIPOS':'⚽ GESTIONAR CONVOCATORIA'}</button>
-        <button onclick="window.toggleMantenimiento('${t.id}')" style="width:100%;margin-top:6px;padding:9px;border-radius:10px;cursor:pointer;border:1.5px solid ${t.app_estado==='mantenimiento'?'#00ff88':'#ff8c00'};background:transparent;color:${t.app_estado==='mantenimiento'?'#00ff88':'#ff8c00'};font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px">${t.app_estado==='mantenimiento'?'✅ ACTIVAR APP':'🔧 PONER EN MANTENIMIENTO'}</button>`;
+        // Show manage button + habilitar if conv is confirmed or finalizado
+        const showHabilitar = conv.estado==='confirmado' || conv.estado==='finalizado';
+        const btnGestionar = '<button onclick="go(\'/convocatoria\',{tid:\''+t.id+'\',fecha:\''+conv.fecha+'\'})" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid '+color+';background:'+color+'15;color:'+color+';font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px">'+(conv.estado==='confirmado'?'👁 VER EQUIPOS':'⚽ GESTIONAR CONVOCATORIA')+'</button>';
+        const btnHabilitar = showHabilitar ? '<button onclick="go(\'/habilitar-fechas\',{tid:\''+t.id+'\'})" style="width:100%;margin-top:8px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid '+color+';background:transparent;color:'+color+';font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px">📅 HABILITAR PRÓXIMA FECHA</button>' : '';
+        const btnMantenimiento = '<button onclick="window.toggleMantenimiento(\''+t.id+'\')" style="width:100%;margin-top:6px;padding:9px;border-radius:10px;cursor:pointer;border:1.5px solid '+(t.app_estado==='mantenimiento'?'#00ff88':'#ff8c00')+';background:transparent;color:'+(t.app_estado==='mantenimiento'?'#00ff88':'#ff8c00')+';font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px">'+(t.app_estado==='mantenimiento'?'✅ ACTIVAR APP':'🔧 PONER EN MANTENIMIENTO')+'</button>';
+        cta = btnGestionar + btnHabilitar + btnMantenimiento;
       }
     }
     else if(conv&&conv.estado==='confirmado')
