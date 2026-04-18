@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_28.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_29.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -233,7 +233,7 @@ table{width:100%;border-collapse:collapse}
 th{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;padding:8px 4px;border-bottom:1px solid var(--bdr2)}
 td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/c00d1a39-4bfe-4aee-84a4-240f26edf20e"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/d0fc2835-1a4b-4a2f-a027-78562f2bac55"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1352,8 +1352,12 @@ async function sHome(){
   const matchCards = activeTorneos.map(t=>{
     const color = t.color || 'var(--gold)';
     const bg    = t.id==='t1'?'linear-gradient(135deg,#001525 0%,#003050 100%)':'linear-gradient(135deg,#1a0030 0%,#2d004d 100%)';
+    const allActiveConvs = getActiveConvs(t.id);
+    // For display: use the first upcoming conv (may be confirmado)
     const conv  = getNextConv(t.id);
-    const activeConvs = getActiveConvs(t.id);
+    // For player signup CTA: use the first open (en_proceso) conv
+    const convForSignup = allActiveConvs.find(cv=>cv.estado==='en_proceso')||conv;
+    const activeConvs = allActiveConvs;
     const fecha = conv?conv.fecha:proximoPartido(t);
     const dias  = diasHasta(fecha);
     // If dias is negative and no active conv, recalculate next match day
@@ -1388,8 +1392,8 @@ async function sHome(){
 
     // CTA
     // Admin with jid is also a player — show their conv status
-    const myEstCTA = ME&&(!ME.admin||ME.jid)&&conv
-      ? ((conv.convocados_estado||[]).find(x=>x.jid===ME.jid)?.estado||'no_convocado')
+    const myEstCTA = ME&&!ME.admin&&convForSignup
+      ? ((convForSignup.convocados_estado||[]).find(x=>x.jid===ME.jid)?.estado||'no_convocado')
       : null;
     let cta='';
     if(ME&&ME.admin) {
@@ -1402,17 +1406,26 @@ async function sHome(){
         const btnGestionar = '<button onclick="go(\'/convocatoria\',{tid:\''+t.id+'\',fecha:\''+conv.fecha+'\'})" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid '+color+';background:'+color+'15;color:'+color+';font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px">'+(conv.estado==='confirmado'?'👁 VER EQUIPOS':'⚽ GESTIONAR CONVOCATORIA')+'</button>';
         const btnHabilitar = showHabilitar ? '<button onclick="go(\'/habilitar-fechas\',{tid:\''+t.id+'\'})" style="width:100%;margin-top:8px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid '+color+';background:transparent;color:'+color+';font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px">📅 HABILITAR PRÓXIMA FECHA</button>' : '';
         const btnMantenimiento = '<button onclick="window.toggleMantenimiento(\''+t.id+'\')" style="width:100%;margin-top:6px;padding:9px;border-radius:10px;cursor:pointer;border:1.5px solid '+(t.app_estado==='mantenimiento'?'#00ff88':'#ff8c00')+';background:transparent;color:'+(t.app_estado==='mantenimiento'?'#00ff88':'#ff8c00')+';font-family:\'Barlow Condensed\',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px">'+(t.app_estado==='mantenimiento'?'✅ ACTIVAR APP':'🔧 PONER EN MANTENIMIENTO')+'</button>';
-        cta = btnGestionar + btnHabilitar + btnMantenimiento;
+        // Admin with jid can also sign up as player
+        const myEstAdmin = ME.jid && conv && conv.estado!=='confirmado'
+          ? ((conv.convocados_estado||[]).find(x=>x.jid===ME.jid)?.estado||'no_convocado')
+          : null;
+        const btnApuntarse = myEstAdmin==='no_convocado'
+          ? '<button onclick="toggleConvocado(\''+conv.id+'\',\'convocar\')" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;cursor:pointer;border:1.5px solid '+color+';background:'+color+'15;color:'+color+';font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:13px;letter-spacing:1px">✋ ANOTARME</button>'
+          : myEstAdmin==='convocado'
+          ? '<button onclick="toggleConvocado(\''+conv.id+'\',\'desconvocar\')" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;cursor:pointer;border:1.5px solid '+color+'60;background:'+color+'10;color:'+color+';font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:13px;letter-spacing:1px">✅ ANOTADO — CANCELAR</button>'
+          : '';
+        cta = btnGestionar + btnHabilitar + btnMantenimiento + btnApuntarse;
       }
     }
     else if(conv&&conv.estado==='confirmado')
       cta=''; // equipos shown inline, no need for button
-    else if(conv&&myEstCTA==='suspendido')
+    else if(convForSignup&&myEstCTA==='suspendido')
       cta=`<div style="background:#ff444410;border:1px solid #ff444430;border-radius:9px;padding:10px;text-align:center;margin-top:10px"><p style="color:#ff4444;font-weight:800;font-size:12px;font-family:'Barlow Condensed',sans-serif">🚫 SUSPENDIDO PARA ESTE PARTIDO</p></div>`;
-    else if(conv&&myEstCTA==='convocado'&&conv.estado!=='confirmado')
-      cta=`<button onclick="toggleConvocado('${conv.id}','desconvocar')" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid #ff4444;background:#ff444412;color:#ff4444;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px">✗ NO VOY A PODER IR</button>`;
-    else if(conv&&myEstCTA==='no_convocado'&&conv.estado!=='confirmado')
-      cta=`<button onclick="toggleConvocado('${conv.id}','convocar')" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid ${color};background:${color}15;color:${color};font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:1px">${tr('sign_up')}</button>`;
+    else if(convForSignup&&myEstCTA==='convocado'&&convForSignup.estado!=='confirmado')
+      cta=`<button onclick="toggleConvocado('${convForSignup.id}','desconvocar')" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid #ff4444;background:#ff444412;color:#ff4444;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px">✗ NO VOY A PODER IR</button>`;
+    else if(convForSignup&&myEstCTA==='no_convocado'&&convForSignup.estado!=='confirmado')
+      cta=`<button onclick="toggleConvocado('${convForSignup.id}','convocar')" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid ${color};background:${color}15;color:${color};font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:1px">${tr('sign_up')}</button>`;
     else if(!conv&&!ME?.admin)
       cta=`<button onclick="go('/match')" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;cursor:pointer;border:1.5px solid ${color};background:${color}15;color:${color};font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;letter-spacing:1px">${tr('sign_up')}</button>`;
 
