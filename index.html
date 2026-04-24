@@ -4022,6 +4022,8 @@ window.cerrarVotacion = async function(pid) {
       votacion_abierta: false
     });
     invalidateCache('partidos');
+    // Recalculate ranking after figura is assigned
+    try { await window.recalcularRanking(p.tid); } catch(e) {}
   } catch(e) { console.error('cerrarVotacion error:', e); }
 };
 
@@ -4044,7 +4046,10 @@ window.cerrarVotacionAdmin = async function(pid) {
       votacion_abierta: false
     });
     invalidateCache('partidos');
-    alert('✅ Figura asignada correctamente.');
+    // Recalculate ranking after figura is assigned
+    try { await window.recalcularRanking(p.tid); } catch(e) {}
+    invalidateCache('ranking');
+    alert('✅ Figura asignada y ranking actualizado.');
     await sMatch();
   } catch(e) { alert('Error: ' + _errMsg(e)); }
 };
