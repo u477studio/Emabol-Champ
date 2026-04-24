@@ -2138,7 +2138,35 @@ async function sProximos() {
       const dot=played?`<span style="width:8px;height:8px;border-radius:50%;background:#00ff88;display:inline-block"></span>`:isN&&next2[0].fecha===fecha?`<span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;box-shadow:0 0 6px ${color}"></span>`:isN?`<span style="width:8px;height:8px;border-radius:50%;background:${color}80;display:inline-block"></span>`:`<span style="width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block"></span>`;
       const rc=d<0?'var(--dim)':isN?'var(--txt)':'#6a6a8a';
       const rw=isN?'700':'400';
-      const tag=played?`<span style="font-size:9px;color:#00ff88;font-family:'Barlow Condensed',sans-serif;font-weight:700">${played.gan===tr('draw')?'EMP':played.gan==='a'?'A':'B'}</span>`:conv?.estado==='confirmado'?`<span style="font-size:9px;color:#00ff88;font-family:'Barlow Condensed',sans-serif;font-weight:700">CONF</span>`:conv?`<span style="font-size:9px;color:${color};font-family:'Barlow Condensed',sans-serif;font-weight:700">EN PROC.</span>`:'';
+      let tag='';
+      if(played){
+        const myJid=ME?.jid;
+        const inA=(played.equipo_a||[]).includes(myJid);
+        const inB=(played.equipo_b||[]).includes(myJid);
+        const played_in = inA||inB;
+        const ganNorm=(played.gan||'').toLowerCase().replace('equipo_','').trim();
+        const isFig = played.fig===myJid;
+        if(!played_in||!myJid){
+          // Admin or not in lineup — show generic result
+          tag=`<span style="font-size:9px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700">${ganNorm==='empate'?'EMP':ganNorm==='a'?'A':'B'}</span>`;
+        } else {
+          const gano=(ganNorm==='a'&&inA)||(ganNorm==='b'&&inB);
+          const empato=ganNorm==='empate';
+          if(isFig){
+            tag=`<span style="font-size:9px;color:var(--gold);font-family:'Barlow Condensed',sans-serif;font-weight:900">⭐ FIG</span>`;
+          } else if(gano){
+            tag=`<span style="font-size:9px;color:var(--green);font-family:'Barlow Condensed',sans-serif;font-weight:900">GANÓ</span>`;
+          } else if(empato){
+            tag=`<span style="font-size:9px;color:var(--gold);font-family:'Barlow Condensed',sans-serif;font-weight:900">EMP</span>`;
+          } else {
+            tag=`<span style="font-size:9px;color:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:900">DERROTA</span>`;
+          }
+        }
+      } else if(conv?.estado==='confirmado'){
+        tag=`<span style="font-size:9px;color:var(--green);font-family:'Barlow Condensed',sans-serif;font-weight:700">CONF</span>`;
+      } else if(conv){
+        tag=`<span style="font-size:9px;color:${color};font-family:'Barlow Condensed',sans-serif;font-weight:700">EN PROC.</span>`;
+      }
       return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a1a2a">${dot}<span style="font-size:11px;color:var(--dim);min-width:22px;font-family:'Barlow Condensed',sans-serif">J${j}</span><span style="font-size:13px;color:${rc};font-weight:${rw};flex:1">${fmt(fecha)}</span>${tag}</div>`;
     }).join('');
 
