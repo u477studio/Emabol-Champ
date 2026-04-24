@@ -2060,6 +2060,7 @@ async function sProximos() {
     getAll('convocatorias').catch(()=>[]),
     getAll('partidos').catch(()=>[])
   ]);
+  const jMap={}; js.forEach(j=>jMap[j.id]=j);
   // Check for open figura voting the player can participate in
   const openVoting = !ME?.admin ? partidos.filter(p=>
     p.votacion_abierta &&
@@ -2167,7 +2168,14 @@ async function sProximos() {
       } else if(conv){
         tag=`<span style="font-size:9px;color:${color};font-family:'Barlow Condensed',sans-serif;font-weight:700">EN PROC.</span>`;
       }
-      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a1a2a">${dot}<span style="font-size:11px;color:var(--dim);min-width:22px;font-family:'Barlow Condensed',sans-serif">J${j}</span><span style="font-size:13px;color:${rc};font-weight:${rw};flex:1">${fmt(fecha)}</span>${tag}</div>`;
+      // Show figura if partido has one
+      const figTag = played?.fig ? (()=>{
+        const figJ = jMap[played.fig];
+        const figNombre = figJ ? figJ.nombre.split(' ')[0].toUpperCase() : '⭐';
+        const isMeFig = played.fig === ME?.jid;
+        return `<span style="font-size:9px;color:var(--gold);font-family:'Barlow Condensed',sans-serif;font-weight:900;white-space:nowrap">${isMeFig?'⭐ VOS':('⭐ '+figNombre)}</span>`;
+      })() : '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1a1a2a">${dot}<span style="font-size:11px;color:var(--dim);min-width:22px;font-family:'Barlow Condensed',sans-serif">J${j}</span><span style="font-size:13px;color:${rc};font-weight:${rw};flex:1">${fmt(fecha)}</span>${figTag}${tag}</div>`;
     }).join('');
 
     return `<div style="margin-bottom:20px">
