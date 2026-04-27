@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_33.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_34.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -885,7 +885,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/767ed3ed-ed42-456d-9eab-9464f3a26110"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/cf7321cd-bb8f-4b65-b224-8fe58bfe41e2"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1687,6 +1687,98 @@ window.switchLang = function(lang) {
   sLogin();
 };
 
+// ═══════ GESTIÓN DE LIGA ═══════
+async function sGestionLiga() {
+  if(!ME?.admin){ go('/home'); return; }
+  setContent(loading('Cargando liga...'));
+  await loadLiga();
+  const liga = CURRENT_LIGA || {nombre:'', deporte:'futbol', color:'#ff2020'};
+
+  setContent(`<div class="screen up" style="padding:44px 16px 90px">
+    <button class="bk" onclick="go('/home')">← VOLVER</button>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 20px">MI LIGA</h2>
+
+    <label class="lbl">NOMBRE</label>
+    <input class="inp" id="gl-nombre" value="${liga.nombre}" style="margin-bottom:14px"/>
+
+    <label class="lbl">DEPORTE</label>
+    <select id="gl-deporte" class="inp" style="margin-bottom:14px">
+      <option value="futbol"   ${liga.deporte==='futbol'  ?'selected':''}>⚽ Fútbol</option>
+      <option value="padel"    ${liga.deporte==='padel'   ?'selected':''}>🎾 Pádel</option>
+      <option value="basquet"  ${liga.deporte==='basquet' ?'selected':''}>🏀 Básquet</option>
+      <option value="voley"    ${liga.deporte==='voley'   ?'selected':''}>🏐 Vóley</option>
+      <option value="tenis"    ${liga.deporte==='tenis'   ?'selected':''}>🎾 Tenis</option>
+      <option value="otro"     ${liga.deporte==='otro'    ?'selected':''}>🏅 Otro</option>
+    </select>
+
+    <label class="lbl">COLOR DE LA LIGA</label>
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+      ${['#ff2020','#ff8c00','#ffd700','#00e676','#00b4ff','#8b5cf6','#ff69b4','#ffffff'].map(col=>
+        `<div onclick="document.querySelectorAll('.color-opt').forEach(d=>d.style.outline='none');this.style.outline='3px solid '+\'${col}\';document.getElementById('gl-color').value=\'${col}\'"
+          class="color-opt"
+          style="width:36px;height:36px;border-radius:50%;background:${col};cursor:pointer;border:2px solid rgba(255,255,255,0.2);outline:${liga.color===col?'3px solid '+col:'none'}"></div>`
+      ).join('')}
+      <input id="gl-color" type="hidden" value="${liga.color||'#ff2020'}"/>
+    </div>
+
+    <div style="background:var(--surf);border:1px solid var(--bdr2);border-radius:10px;padding:14px;margin-bottom:20px">
+      <p style="font-size:10px;color:var(--dim);letter-spacing:2px;font-family:'Barlow Condensed',sans-serif;font-weight:900;margin-bottom:4px">PLAN ACTUAL</p>
+      <p style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--txt);letter-spacing:2px">${(liga.plan||'trial').toUpperCase()}</p>
+      <p style="font-size:11px;color:var(--dim);margin-top:2px">${liga.plan==='trial'?'Período de prueba gratuito':liga.plan==='pro'?'Plan Pro activo':'Plan básico'}</p>
+    </div>
+
+    <button onclick="window.guardarLiga()" class="btn btn-gold" style="margin-bottom:10px;letter-spacing:2px">💾 GUARDAR CAMBIOS</button>
+  </div>`);
+}
+
+window.guardarLiga = async function() {
+  const nombre  = document.getElementById('gl-nombre')?.value?.trim();
+  const deporte = document.getElementById('gl-deporte')?.value;
+  const color   = document.getElementById('gl-color')?.value || '#ff2020';
+  if(!nombre){ alert('El nombre no puede estar vacío'); return; }
+  try {
+    await _req('PATCH', '/ligas?id=eq.'+getLigaId(), {nombre, deporte, color});
+    if(CURRENT_LIGA) { CURRENT_LIGA.nombre=nombre; CURRENT_LIGA.deporte=deporte; CURRENT_LIGA.color=color; }
+    alert('✅ Liga actualizada');
+    go('/home');
+  } catch(e){ alert('Error: '+_errMsg(e)); }
+};
+
+
+// ═══════ SUPERADMIN — PANEL DE LIGAS ═══════
+async function sSuperAdmin() {
+  if(!ME?.superadmin){ go('/home'); return; }
+  setContent(loading('Cargando ligas...'));
+  const ligas = await _req('GET', '/ligas?select=*&order=created_at.desc').catch(()=>[]);
+  const subs  = await _req('GET', '/suscripciones?select=*').catch(()=>[]);
+  const subMap = {};
+  (subs||[]).forEach(s=>subMap[s.liga_id]=s);
+
+  const rows = (ligas||[]).map(l => {
+    const sub = subMap[l.id] || {};
+    return `<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;color:var(--txt)">${l.nombre}</p>
+          <p style="font-size:11px;color:var(--dim)">${l.deporte} · ${l.admin_email}</p>
+        </div>
+        <div style="text-align:right">
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:${l.estado==='activo'?'rgba(0,230,118,0.1)':'rgba(255,50,50,0.1)'};color:${l.estado==='activo'?'var(--green)':'var(--red)'};border:1px solid ${l.estado==='activo'?'rgba(0,230,118,0.3)':'rgba(255,50,50,0.3)'};font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1px">${l.estado.toUpperCase()}</span>
+          <p style="font-size:10px;color:var(--dim);margin-top:4px">${(l.plan||'trial').toUpperCase()}</p>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  setContent(`<div class="screen up" style="padding:44px 16px 90px">
+    <button class="bk" onclick="go('/home')">← VOLVER</button>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">PANEL DE LIGAS</h2>
+    <p style="font-size:12px;color:var(--dim);margin-bottom:20px">${(ligas||[]).length} liga${(ligas||[]).length!==1?'s':''} registrada${(ligas||[]).length!==1?'s':''}</p>
+    ${rows || '<p style="color:var(--dim);text-align:center">No hay ligas registradas.</p>'}
+  </div>`);
+}
+
+
 // ═══════ CREAR LIGA (onboarding) ═══════
 async function sCrearLiga() {
   setContent(`<div class="up" style="min-height:100dvh;display:flex;flex-direction:column;padding:28px 24px;background:transparent;overflow-y:auto">
@@ -2233,6 +2325,9 @@ async function sHome(){
         </div>
         <div onclick="go('/cargar-resultado')" style="background:var(--card);border:1px solid #00d4ff30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">📊</span><div><p style="font-size:12px;font-weight:900;color:#00d4ff;font-family:'Barlow Condensed',sans-serif">RESULTADO</p><p style="font-size:10px;color:var(--dim)">Cargar partido</p></div>
+        </div>
+        <div onclick="go('/gestion-liga')" style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">⚙️</span><div><p style="font-size:12px;font-weight:900;color:var(--muted);font-family:'Barlow Condensed',sans-serif">MI LIGA</p><p style="font-size:10px;color:var(--dim)">Configuración</p></div>
         </div>
         <div onclick="window.recalcularRanking('${CURRENT_TORNEO?.id||'t1'}')" style="background:var(--card);border:1px solid var(--red)30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px;grid-column:1/-1">
           <span style="font-size:20px">🔄</span><div><p style="font-size:12px;font-weight:900;color:var(--red);font-family:'Barlow Condensed',sans-serif">RECALCULAR RANKING</p><p style="font-size:10px;color:var(--dim)">Recalcular desde partidos</p></div>
