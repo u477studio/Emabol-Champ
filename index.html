@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_32.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_33.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -885,7 +885,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/31d825bf-4fe1-45e2-a108-5950b27a1e3c"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/767ed3ed-ed42-456d-9eab-9464f3a26110"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1205,6 +1205,9 @@ async function _req(method, path, body) {
 const _cache = {};
 const _CACHE_TTL = 60000; // 60 seconds
 
+// Tables filtered by liga_id
+const LIGA_TABLES = new Set(['jugadores','torneos','convocatorias','partidos','ranking','config','auth_pending']);
+
 async function getAll(table) {
   const now = Date.now();
   // Convocatorias change frequently — use shorter TTL
@@ -1212,7 +1215,8 @@ async function getAll(table) {
   if(_cache[table] && (now - _cache[table].ts) < ttl) {
     return _cache[table].data;
   }
-  var r = await _req('GET', '/' + table + '?select=*');
+  const ligaSuffix = LIGA_TABLES.has(table) && getLigaId() ? '&liga_id=eq.'+getLigaId() : '';
+  var r = await _req('GET', '/' + table + '?select=*' + ligaSuffix);
   var data = _plain(r) || [];
   _cache[table] = { data, ts: now };
   return data;
@@ -1240,6 +1244,10 @@ async function getOne(table, id) {
   return (rows && rows.length) ? rows[0] : null;
 }
 async function upsertRow(table, row) {
+  // Auto-inject liga_id for liga-scoped tables
+  if(typeof LIGA_TABLES !== 'undefined' && LIGA_TABLES.has(table) && !row.liga_id && getLigaId()) {
+    row = {...row, liga_id: getLigaId()};
+  }
   await _req('POST', '/' + table, _plain(row));
   // Invalidate AFTER write so next read gets fresh data
   invalidateCache(table);
@@ -1265,6 +1273,7 @@ async function loginAsync(u, p) {
     const m = {n:'emabol', admin:true, jid:null};
     ME = m; sessionStorage.setItem('emb_me', JSON.stringify(m));
     await restoreTorneo().catch(()=>{});
+    await loadLiga().catch(()=>{});
     return {ok:true};
   }
 
@@ -1286,7 +1295,7 @@ async function loginAsync(u, p) {
       return {ok:false, msg:'Tu email no está vinculado a ningún jugador. Contactá al admin.'};
     }
 
-    const m = {n: jugador.nombre, admin: jugador.admin || false, jid: jugador.id, email: u, token: data.access_token};
+    const m = {n: jugador.nombre, admin: jugador.admin || false, jid: jugador.id, email: u, token: data.access_token, liga_id: jugador.liga_id || 'liga_emabol'};
     ME = m;
     sessionStorage.setItem('emb_me', JSON.stringify(m));
     await restoreTorneo().catch(()=>{});
@@ -1676,6 +1685,106 @@ window.doSetup=async function(){
 window.switchLang = function(lang) {
   setLang(lang);
   sLogin();
+};
+
+// ═══════ CREAR LIGA (onboarding) ═══════
+async function sCrearLiga() {
+  setContent(`<div class="up" style="min-height:100dvh;display:flex;flex-direction:column;padding:28px 24px;background:transparent;overflow-y:auto">
+    <button class="bk" onclick="go('/login')" style="margin-bottom:24px">← VOLVER</button>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;margin-bottom:6px">CREAR MI LIGA</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:28px">Configurá tu liga en menos de 2 minutos.</p>
+
+    <label class="lbl">NOMBRE DE LA LIGA</label>
+    <input class="inp" id="cl-nombre" type="text" placeholder="Ej: Liga del Barrio" style="margin-bottom:14px"/>
+
+    <label class="lbl">DEPORTE</label>
+    <select id="cl-deporte" class="inp" style="margin-bottom:14px">
+      <option value="futbol">⚽ Fútbol</option>
+      <option value="padel">🎾 Pádel</option>
+      <option value="basquet">🏀 Básquet</option>
+      <option value="voley">🏐 Vóley</option>
+      <option value="tenis">🎾 Tenis</option>
+      <option value="otro">🏅 Otro</option>
+    </select>
+
+    <label class="lbl">TU EMAIL (será el admin)</label>
+    <input class="inp" id="cl-email" type="email" placeholder="admin@tuliga.com" style="margin-bottom:14px"/>
+
+    <label class="lbl">CONTRASEÑA</label>
+    <input class="inp" id="cl-pass" type="password" placeholder="Mínimo 6 caracteres" style="margin-bottom:14px"/>
+
+    <label class="lbl">COLOR DE LA LIGA</label>
+    <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+      ${['#ff2020','#ff8c00','#ffd700','#00e676','#00b4ff','#8b5cf6','#ff69b4','#ffffff'].map(col=>
+        `<div onclick="this.parentNode.querySelectorAll('div').forEach(d=>d.style.outline='none');this.style.outline='3px solid '+\'${col}\';document.getElementById('cl-color').value=\'${col}\'"
+          style="width:36px;height:36px;border-radius:50%;background:${col};cursor:pointer;border:2px solid rgba(255,255,255,0.2)"></div>`
+      ).join('')}
+      <input id="cl-color" type="hidden" value="#ff2020"/>
+    </div>
+
+    <p id="cl-err" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none"></p>
+    <button onclick="window.crearLiga()" class="btn btn-gold" style="letter-spacing:2px;font-size:16px">🏆 CREAR LIGA</button>
+
+    <p style="font-size:11px;color:var(--dim);text-align:center;margin-top:16px">
+      Al crear tu liga aceptás los términos de uso. El primer mes es gratis.
+    </p>
+  </div>`);
+}
+
+window.crearLiga = async function() {
+  const nombre  = document.getElementById('cl-nombre')?.value?.trim();
+  const deporte = document.getElementById('cl-deporte')?.value;
+  const email   = document.getElementById('cl-email')?.value?.trim();
+  const pass    = document.getElementById('cl-pass')?.value?.trim();
+  const color   = document.getElementById('cl-color')?.value || '#ff2020';
+  const errEl   = document.getElementById('cl-err');
+
+  if(!nombre){ errEl.textContent='Ingresá el nombre de la liga'; errEl.style.display='block'; return; }
+  if(!email) { errEl.textContent='Ingresá tu email'; errEl.style.display='block'; return; }
+  if(!pass || pass.length < 6){ errEl.textContent='La contraseña debe tener al menos 6 caracteres'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+
+  try {
+    setContent(loading('Creando tu liga...'));
+
+    // 1. Register user in Supabase Auth
+    const {SUPA_URL: su, SUPA_KEY: sk} = _getConfig();
+    const authResp = await fetch(su + '/auth/v1/signup', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':sk},
+      body: JSON.stringify({email, password: pass})
+    });
+    const authData = await authResp.json();
+    if(!authData.user?.id) throw new Error(authData.message || 'Error al crear cuenta');
+
+    // 2. Create liga
+    const ligaId = 'liga_' + Date.now().toString(36);
+    await _req('POST', '/ligas', {
+      id: ligaId, nombre, deporte, color,
+      admin_email: email, estado: 'activo', plan: 'trial'
+    });
+
+    // 3. Create admin jugador linked to auth
+    const jId = 'j_' + Date.now().toString(36);
+    await _req('POST', '/jugadores', {
+      id: jId, nombre: email.split('@')[0], admin: true,
+      email, auth_user_id: authData.user.id,
+      liga_id: ligaId, convocado: true
+    });
+
+    setContent(`<div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:transparent;text-align:center">
+      <div style="font-size:56px;margin-bottom:20px">🏆</div>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:4px;color:var(--reflector);margin-bottom:12px">¡LIGA CREADA!</h2>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:8px"><strong style="color:var(--white)">${nombre}</strong> ya está activa.</p>
+      <p style="color:var(--dim);font-size:12px;margin-bottom:32px">Revisá tu email para confirmar tu cuenta.</p>
+      <button onclick="go('/login')" class="btn btn-gold" style="max-width:240px">INGRESAR A MI LIGA</button>
+    </div>`);
+  } catch(e) {
+    const errEl2 = document.getElementById('cl-err');
+    if(errEl2){ errEl2.textContent = 'Error: ' + _errMsg(e); errEl2.style.display='block'; }
+    else { alert('Error: ' + _errMsg(e)); }
+    sCrearLiga();
+  }
 };
 
 function sLogin(){
@@ -3934,6 +4043,33 @@ window.afterSQL = async function() {
 // ═══════ TORNEO SELECTION ═══════
 // Currently active tournament for this session
 let CURRENT_TORNEO = null;
+
+// ── Multi-tenant: current liga ───────────────────────────────────
+let CURRENT_LIGA = null; // {id, nombre, deporte, color, plan, estado}
+
+// Get current liga_id — fallback to 'liga_emabol' for backwards compat
+function getLigaId() {
+  return CURRENT_LIGA?.id || ME?.liga_id || 'liga_emabol';
+}
+
+// Filter query param for current liga
+function ligaFilter() {
+  return 'liga_id=eq.' + getLigaId();
+}
+
+// Load liga for current user
+async function loadLiga() {
+  if(!ME) return null;
+  const ligaId = ME.liga_id || 'liga_emabol';
+  try {
+    const rows = await _req('GET', '/ligas?id=eq.' + ligaId + '&limit=1');
+    CURRENT_LIGA = rows?.[0] || null;
+    return CURRENT_LIGA;
+  } catch(e) {
+    CURRENT_LIGA = {id: ligaId, nombre: 'Emabol', deporte: 'futbol', color: 'var(--red)', plan: 'pro'};
+    return CURRENT_LIGA;
+  }
+}
 
 // Get color for torneo display
 function torneoColor(t) { return t.color || 'var(--gold)'; }
