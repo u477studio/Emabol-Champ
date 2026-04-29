@@ -1113,7 +1113,7 @@ const _cache = {};
 const _CACHE_TTL = 60000; // 60 seconds
 
 // Tables filtered by liga_id
-const LIGA_TABLES = new Set(['jugadores','torneos','convocatorias','partidos','ranking','config','auth_pending']);
+const LIGA_TABLES = new Set(['jugadores','torneos','convocatorias','partidos','ranking','config','auth_pending','brackets']);
 
 async function getAll(table) {
   const now = Date.now();
@@ -1593,6 +1593,308 @@ window.switchLang = function(lang) {
   setLang(lang);
   sLogin();
 };
+
+// ═══════════════════════════════════════════════════════════
+// BRACKET — Eliminación directa
+// ═══════════════════════════════════════════════════════════
+
+// Calcular siguiente potencia de 2
+function nextPow2(n) {
+  let p = 1;
+  while(p < n) p *= 2;
+  return p;
+}
+
+// Generar estructura inicial del bracket
+function generarBracket(equipos) {
+  const n = equipos.length;
+  const slots = nextPow2(n);
+  const byes = slots - n;
+
+  // Sembrar equipos: los primeros 'byes' reciben bye en ronda 1
+  // Intercalar byes para distribuirlos uniformemente
+  const sembrados = [];
+  let byeIdx = 0, eqIdx = 0;
+  for(let i = 0; i < slots; i++) {
+    if(byeIdx < byes && (i % Math.floor(slots/byes) === 0)) {
+      sembrados.push({id:'bye_'+byeIdx, nombre:'BYE', bye:true});
+      byeIdx++;
+    } else {
+      sembrados.push(equipos[eqIdx++] || {id:'bye_'+byeIdx++, nombre:'BYE', bye:true});
+    }
+  }
+
+  // Generar rondas
+  const totalRondas = Math.log2(slots);
+  const rondas = [];
+
+  // Ronda 1: emparejar sembrados de a 2
+  const ronda1 = {
+    nombre: totalRondas > 1 ? 'Ronda ' + 1 : 'Final',
+    partidos: []
+  };
+  for(let i = 0; i < slots; i += 2) {
+    const eqA = sembrados[i];
+    const eqB = sembrados[i+1];
+    // Si uno es BYE, el otro avanza automáticamente
+    const ganador = eqA.bye ? eqB.id : eqB.bye ? eqA.id : null;
+    ronda1.partidos.push({
+      id: 'p_r1_' + (i/2),
+      equipo_a: eqA.bye ? null : eqA.id,
+      equipo_b: eqB.bye ? null : eqB.id,
+      nombre_a: eqA.nombre,
+      nombre_b: eqB.nombre,
+      bye_a: eqA.bye || false,
+      bye_b: eqB.bye || false,
+      ganador,
+      auto_avance: !!ganador
+    });
+  }
+  rondas.push(ronda1);
+
+  // Rondas siguientes (vacías, se completan al avanzar)
+  const nombresRonda = ['', 'Final', 'Semifinal', 'Cuartos', 'Octavos', 'Dieciseisavos'];
+  for(let r = 2; r <= totalRondas; r++) {
+    const partidosN = slots / Math.pow(2, r);
+    const nombreR = nombresRonda[totalRondas - r + 1] || 'Ronda ' + r;
+    rondas.push({
+      nombre: nombreR,
+      partidos: Array.from({length: partidosN}, (_, i) => ({
+        id: 'p_r'+r+'_'+i,
+        equipo_a: null, nombre_a: '-',
+        equipo_b: null, nombre_b: '-',
+        ganador: null, auto_avance: false
+      }))
+    });
+  }
+
+  return rondas;
+}
+
+// Avanzar ganador a la siguiente ronda
+function avanzarGanador(rondas, rondaIdx, partidoIdx, ganadorId, ganadorNombre) {
+  const rondas2 = JSON.parse(JSON.stringify(rondas)); // deep copy
+  rondas2[rondaIdx].partidos[partidoIdx].ganador = ganadorId;
+
+  // Calcular posición en siguiente ronda
+  if(rondaIdx + 1 < rondas2.length) {
+    const nextRonda = rondaIdx + 1;
+    const nextPartido = Math.floor(partidoIdx / 2);
+    const esA = partidoIdx % 2 === 0;
+    const p = rondas2[nextRonda].partidos[nextPartido];
+    if(esA) { p.equipo_a = ganadorId; p.nombre_a = ganadorNombre; }
+    else     { p.equipo_b = ganadorId; p.nombre_b = ganadorNombre; }
+
+    // Auto-avance si el otro slot también tiene ganador
+    if(p.equipo_a && p.equipo_b) {
+      // Ready to play — no auto advance
+    }
+  }
+  return rondas2;
+}
+
+// ── Pantalla: crear bracket ───────────────────────────────────────
+async function sCrearBracket(p) {
+  if(!ME?.admin){ go('/home'); return; }
+  const tid = p?.tid || CURRENT_TORNEO?.id;
+  if(!tid){ alert('Seleccioná un torneo primero'); go('/torneos'); return; }
+
+  setContent(loading('Cargando equipos...'));
+  const [equiposList, bracketExist] = await Promise.all([
+    getAll('equipos').then(eq => eq.filter(e => e.tid === tid)),
+    _req('GET', '/brackets?tid=eq.'+tid+'&liga_id=eq.'+getLigaId()+'&limit=1').catch(()=>[])
+  ]);
+
+  if(bracketExist?.length > 0) {
+    // Ya existe un bracket — ir a verlo
+    window._bracketId = bracketExist[0].id;
+    go('/bracket', {tid});
+    return;
+  }
+
+  if(equiposList.length < 2) {
+    setContent(`<div class="screen up" style="padding:44px 16px 90px">
+      <button class="bk" onclick="go('/home')">← VOLVER</button>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 20px">BRACKET</h2>
+      <div style="background:var(--surf);border:1px solid var(--bdr2);border-radius:12px;padding:24px;text-align:center">
+        <p style="font-size:32px;margin-bottom:12px">⚠️</p>
+        <p style="color:var(--muted);font-size:14px">Necesitás al menos 2 equipos para crear un bracket.</p>
+        <button onclick="go('/equipos',{tid:'${tid}'})" class="btn btn-out" style="margin-top:16px;max-width:200px">IR A EQUIPOS</button>
+      </div>
+    </div>`);
+    return;
+  }
+
+  const slots = nextPow2(equiposList.length);
+  const byes = slots - equiposList.length;
+  const eqCards = equiposList.map(e =>
+    `<div style="background:var(--surf);border:1px solid ${e.color||'var(--bdr2)'};border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${e.color||'var(--muted)'}"></div>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px">${e.nombre}</span>
+    </div>`
+  ).join('');
+
+  setContent(`<div class="screen up" style="padding:44px 16px 90px">
+    <button class="bk" onclick="go('/home')">← VOLVER</button>
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">CREAR BRACKET</h2>
+    <p style="font-size:12px;color:var(--dim);margin-bottom:20px">${equiposList.length} equipos · ${slots} slots · ${byes} bye${byes!==1?'s':''}</p>
+
+    <p class="sec-title">EQUIPOS PARTICIPANTES</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">${eqCards}</div>
+
+    <div style="background:var(--surf);border:1px solid var(--bdr2);border-radius:10px;padding:14px;margin-bottom:24px">
+      <p style="font-size:12px;color:var(--muted);line-height:1.6">
+        El bracket se generará automáticamente. Los byes se distribuyen de forma equitativa. 
+        Los equipos con bye avanzan directo a la siguiente ronda.
+      </p>
+    </div>
+
+    <button onclick="window.confirmarBracket('${tid}')" class="btn btn-gold" style="letter-spacing:2px">🏆 GENERAR BRACKET</button>
+  </div>`);
+  window._bracketEquipos = equiposList;
+}
+
+window.confirmarBracket = async function(tid) {
+  const equipos = window._bracketEquipos || [];
+  if(!equipos.length){ alert('Sin equipos'); return; }
+  try {
+    setContent(loading('Generando bracket...'));
+    const rondas = generarBracket(equipos.map(e=>({id:e.id, nombre:e.nombre, color:e.color})));
+    const bid = 'bracket_' + Date.now().toString(36);
+    await _req('POST', '/brackets', {
+      id: bid, tid,
+      liga_id: getLigaId(),
+      nombre: 'Bracket ' + (CURRENT_TORNEO?.nombre||''),
+      estado: 'en_curso',
+      equipos: equipos.map(e=>({id:e.id, nombre:e.nombre, color:e.color})),
+      rondas
+    });
+    invalidateCache('brackets');
+    window._bracketId = bid;
+    go('/bracket', {tid});
+  } catch(e){ alert('Error: '+_errMsg(e)); }
+};
+
+// ── Pantalla: ver bracket ─────────────────────────────────────────
+async function sBracket(p) {
+  setContent(loading('Cargando bracket...'));
+  const tid = p?.tid || CURRENT_TORNEO?.id;
+  const bList = await _req('GET', '/brackets?tid=eq.'+tid+'&liga_id=eq.'+getLigaId()+'&limit=1').catch(()=>[]);
+  const bracket = bList?.[0];
+  if(!bracket){ go('/crear-bracket',{tid}); return; }
+  window._bracket = bracket;
+
+  const rondas = bracket.rondas || [];
+  const isAdmin = ME?.admin;
+
+  const rondasHtml = rondas.map((ronda, ri) => {
+    const partidos = ronda.partidos.map((part, pi) => {
+      const ganA = part.ganador === part.equipo_a;
+      const ganB = part.ganador === part.equipo_b;
+      const jugado = !!part.ganador;
+      const esBye = part.bye_a || part.bye_b;
+
+      const teamRow = (id, nombre, isGanador, isBye) =>
+        `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;
+            background:${isGanador?'rgba(0,230,118,0.08)':'var(--surf2)'};
+            border-left:3px solid ${isGanador?'var(--green)':isBye?'var(--dim)':'var(--bdr2)'};
+            border-radius:0 4px 4px 0;margin-bottom:2px;opacity:${isBye?0.4:1}">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;color:${isGanador?'var(--green)':'var(--txt)'}">${nombre||'?'}</span>
+          ${isGanador?'<span style="font-size:14px">✓</span>':''}
+        </div>`;
+
+      const btnCargar = isAdmin && !jugado && !esBye && part.equipo_a && part.equipo_b
+        ? `<button onclick="window.cargarResultadoBracket('${bracket.id}',${ri},${pi},'${part.nombre_a}','${part.nombre_b}')"
+            style="width:100%;margin-top:6px;padding:7px;border-radius:6px;border:none;
+            background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;
+            font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;
+            letter-spacing:1.5px;cursor:pointer">📊 CARGAR RESULTADO</button>`
+        : '';
+
+      return `<div style="margin-bottom:10px;background:var(--card);border:1px solid var(--bdr2);border-radius:8px;padding:8px;min-width:160px">
+        ${teamRow(part.equipo_a, part.nombre_a, ganA, part.bye_a)}
+        ${teamRow(part.equipo_b, part.nombre_b, ganB, part.bye_b)}
+        ${btnCargar}
+        ${esBye&&!jugado?'<p style="font-size:9px;color:var(--dim);text-align:center;margin-top:4px">BYE — avance automático</p>':''}
+      </div>`;
+    }).join('');
+
+    return `<div style="margin-right:16px;min-width:180px;flex-shrink:0">
+      <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;
+          letter-spacing:3px;color:var(--red);margin-bottom:10px;text-transform:uppercase">${ronda.nombre}</p>
+      ${partidos}
+    </div>`;
+  }).join('');
+
+  const campeonHtml = bracket.campeon
+    ? `<div style="background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,215,0,0.05));
+          border:2px solid rgba(255,215,0,0.4);border-radius:14px;padding:20px;text-align:center;margin-bottom:20px">
+        <p style="font-size:36px;margin-bottom:8px">🏆</p>
+        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:3px;color:var(--gold);margin-bottom:4px">CAMPEÓN</p>
+        <p style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--gold)">${(bracket.equipos||[]).find(e=>e.id===bracket.campeon)?.nombre||'?'}</p>
+      </div>`
+    : '';
+
+  setContent(`<div class="screen up" style="padding:44px 0 90px">
+    <div style="padding:0 16px">
+      <button class="bk" onclick="go('/home')">← VOLVER</button>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">${bracket.nombre}</h2>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:16px">${bracket.equipos?.length||0} equipos · Eliminación directa</p>
+      ${campeonHtml}
+    </div>
+    <!-- Bracket scroll horizontal -->
+    <div style="overflow-x:auto;padding:0 16px 16px">
+      <div style="display:flex;align-items:flex-start;min-width:max-content">
+        ${rondasHtml}
+      </div>
+    </div>
+  </div>`);
+}
+
+window.cargarResultadoBracket = function(bracketId, ri, pi, nombreA, nombreB) {
+  const b = window._bracket;
+  if(!b) return;
+  const part = b.rondas[ri].partidos[pi];
+
+  // Simple modal
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:14px;padding:24px;width:100%;max-width:320px">
+    <h3 style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:16px;text-align:center">RESULTADO</h3>
+    <p style="font-size:12px;color:var(--dim);text-align:center;margin-bottom:16px">${nombreA} vs ${nombreB}</p>
+    <button onclick="window._setGanadorBracket('${bracketId}',${ri},${pi},'${part.equipo_a}','${nombreA}')" 
+      class="btn btn-out" style="margin-bottom:8px">🏆 ${nombreA}</button>
+    <button onclick="window._setGanadorBracket('${bracketId}',${ri},${pi},'${part.equipo_b}','${nombreB}')"
+      class="btn btn-out" style="margin-bottom:8px">🏆 ${nombreB}</button>
+    <button onclick="this.closest('div[style]').parentNode.remove()" class="btn btn-dim">CANCELAR</button>
+  </div>`;
+  document.body.appendChild(overlay);
+};
+
+window._setGanadorBracket = async function(bracketId, ri, pi, ganadorId, ganadorNombre) {
+  document.querySelector('div[style*="position:fixed"][style*="z-index:999"]')?.remove();
+  try {
+    setContent(loading('Actualizando bracket...'));
+    const b = window._bracket;
+    let rondas = avanzarGanador(b.rondas, ri, pi, ganadorId, ganadorNombre);
+
+    // Check if final — assign campeon
+    const esUltimaRonda = ri === rondas.length - 1;
+    const campeon = esUltimaRonda ? ganadorId : b.campeon;
+
+    // Update estado
+    const allDone = rondas.every(r => r.partidos.every(p => p.ganador || p.bye_a || p.bye_b));
+    const estado = campeon ? 'finalizado' : 'en_curso';
+
+    await _req('PATCH', '/brackets?id=eq.'+bracketId, {rondas, campeon: campeon||null, estado});
+    invalidateCache('brackets');
+    const tid = b.tid;
+    const updated = await _req('GET', '/brackets?id=eq.'+bracketId+'&limit=1');
+    window._bracket = updated?.[0] || b;
+    sBracket({tid});
+  } catch(e){ alert('Error: '+_errMsg(e)); }
+};
+
 
 // ═══════ GESTIÓN DE LIGA ═══════
 async function sGestionLiga() {
@@ -2232,6 +2534,9 @@ async function sHome(){
         </div>
         <div onclick="go('/cargar-resultado')" style="background:var(--card);border:1px solid #00d4ff30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">📊</span><div><p style="font-size:12px;font-weight:900;color:#00d4ff;font-family:'Barlow Condensed',sans-serif">RESULTADO</p><p style="font-size:10px;color:var(--dim)">Cargar partido</p></div>
+        </div>
+        <div onclick="go('/bracket',{tid:CURRENT_TORNEO?.id})" style="background:var(--card);border:1px solid rgba(255,215,0,0.2);border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">🏆</span><div><p style="font-size:12px;font-weight:900;color:var(--gold);font-family:'Barlow Condensed',sans-serif">BRACKET</p><p style="font-size:10px;color:var(--dim)">Eliminación directa</p></div>
         </div>
         <div onclick="go('/gestion-liga')" style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">⚙️</span><div><p style="font-size:12px;font-weight:900;color:var(--muted);font-family:'Barlow Condensed',sans-serif">MI LIGA</p><p style="font-size:10px;color:var(--dim)">Configuración</p></div>
