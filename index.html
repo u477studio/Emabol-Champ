@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_34.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_36.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -885,7 +885,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/a855461b-c923-48c4-a428-2912d2d6a68e"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/33b0d364-5caf-49c8-86ca-6f97fe5b3396"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1692,300 +1692,223 @@ window.switchLang = function(lang) {
 // BRACKET — Eliminación directa
 // ═══════════════════════════════════════════════════════════
 
-// Calcular siguiente potencia de 2
-function nextPow2(n) {
-  let p = 1;
-  while(p < n) p *= 2;
-  return p;
-}
+function nextPow2(n) { let p=1; while(p<n) p*=2; return p; }
 
-// Generar estructura inicial del bracket
 function generarBracket(equipos) {
   const n = equipos.length;
   const slots = nextPow2(n);
   const byes = slots - n;
-
-  // Sembrar equipos: los primeros 'byes' reciben bye en ronda 1
-  // Intercalar byes para distribuirlos uniformemente
   const sembrados = [];
-  let byeIdx = 0, eqIdx = 0;
-  for(let i = 0; i < slots; i++) {
-    if(byeIdx < byes && (i % Math.floor(slots/byes) === 0)) {
+  let byeIdx=0, eqIdx=0;
+  const step = byes > 0 ? Math.floor(slots/byes) : slots+1;
+  for(let i=0; i<slots; i++){
+    if(byeIdx<byes && i%step===0){
       sembrados.push({id:'bye_'+byeIdx, nombre:'BYE', bye:true});
       byeIdx++;
     } else {
-      sembrados.push(equipos[eqIdx++] || {id:'bye_'+byeIdx++, nombre:'BYE', bye:true});
+      sembrados.push(equipos[eqIdx++]||{id:'bye_'+byeIdx++,nombre:'BYE',bye:true});
     }
   }
-
-  // Generar rondas
   const totalRondas = Math.log2(slots);
   const rondas = [];
-
-  // Ronda 1: emparejar sembrados de a 2
-  const ronda1 = {
-    nombre: totalRondas > 1 ? 'Ronda ' + 1 : 'Final',
-    partidos: []
-  };
-  for(let i = 0; i < slots; i += 2) {
-    const eqA = sembrados[i];
-    const eqB = sembrados[i+1];
-    // Si uno es BYE, el otro avanza automáticamente
+  const ronda1 = {nombre: totalRondas>1 ? 'Ronda 1' : 'Final', partidos:[]};
+  for(let i=0; i<slots; i+=2){
+    const eqA=sembrados[i], eqB=sembrados[i+1];
     const ganador = eqA.bye ? eqB.id : eqB.bye ? eqA.id : null;
     ronda1.partidos.push({
-      id: 'p_r1_' + (i/2),
-      equipo_a: eqA.bye ? null : eqA.id,
-      equipo_b: eqB.bye ? null : eqB.id,
-      nombre_a: eqA.nombre,
-      nombre_b: eqB.nombre,
-      bye_a: eqA.bye || false,
-      bye_b: eqB.bye || false,
-      ganador,
-      auto_avance: !!ganador
+      id:'p_r1_'+(i/2), equipo_a:eqA.bye?null:eqA.id, equipo_b:eqB.bye?null:eqB.id,
+      nombre_a:eqA.nombre, nombre_b:eqB.nombre,
+      bye_a:eqA.bye||false, bye_b:eqB.bye||false, ganador, auto_avance:!!ganador
     });
   }
   rondas.push(ronda1);
-
-  // Rondas siguientes (vacías, se completan al avanzar)
-  const nombresRonda = ['', 'Final', 'Semifinal', 'Cuartos', 'Octavos', 'Dieciseisavos'];
-  for(let r = 2; r <= totalRondas; r++) {
-    const partidosN = slots / Math.pow(2, r);
-    const nombreR = nombresRonda[totalRondas - r + 1] || 'Ronda ' + r;
-    rondas.push({
-      nombre: nombreR,
-      partidos: Array.from({length: partidosN}, (_, i) => ({
-        id: 'p_r'+r+'_'+i,
-        equipo_a: null, nombre_a: '-',
-        equipo_b: null, nombre_b: '-',
-        ganador: null, auto_avance: false
-      }))
-    });
+  const nombres = ['','Final','Semifinal','Cuartos','Octavos','Dieciseisavos'];
+  for(let r=2; r<=totalRondas; r++){
+    const pn = slots/Math.pow(2,r);
+    const nombre = nombres[totalRondas-r+1]||('Ronda '+r);
+    rondas.push({nombre, partidos:Array.from({length:pn},(_,i)=>({
+      id:'p_r'+r+'_'+i, equipo_a:null, nombre_a:'-', equipo_b:null, nombre_b:'-',
+      ganador:null, auto_avance:false
+    }))});
   }
-
   return rondas;
 }
 
-// Avanzar ganador a la siguiente ronda
-function avanzarGanador(rondas, rondaIdx, partidoIdx, ganadorId, ganadorNombre) {
-  const rondas2 = JSON.parse(JSON.stringify(rondas)); // deep copy
-  rondas2[rondaIdx].partidos[partidoIdx].ganador = ganadorId;
-
-  // Calcular posición en siguiente ronda
-  if(rondaIdx + 1 < rondas2.length) {
-    const nextRonda = rondaIdx + 1;
-    const nextPartido = Math.floor(partidoIdx / 2);
-    const esA = partidoIdx % 2 === 0;
-    const p = rondas2[nextRonda].partidos[nextPartido];
-    if(esA) { p.equipo_a = ganadorId; p.nombre_a = ganadorNombre; }
-    else     { p.equipo_b = ganadorId; p.nombre_b = ganadorNombre; }
-
-    // Auto-avance si el otro slot también tiene ganador
-    if(p.equipo_a && p.equipo_b) {
-      // Ready to play — no auto advance
-    }
+function avanzarGanador(rondas, ri, pi, ganadorId, ganadorNombre) {
+  const r2 = JSON.parse(JSON.stringify(rondas));
+  r2[ri].partidos[pi].ganador = ganadorId;
+  if(ri+1 < r2.length){
+    const np = Math.floor(pi/2);
+    const esA = pi%2===0;
+    const p = r2[ri+1].partidos[np];
+    if(esA){ p.equipo_a=ganadorId; p.nombre_a=ganadorNombre; }
+    else   { p.equipo_b=ganadorId; p.nombre_b=ganadorNombre; }
   }
-  return rondas2;
+  return r2;
 }
 
-// ── Pantalla: crear bracket ───────────────────────────────────────
+// ── sCrearBracket ─────────────────────────────────────────────────
 async function sCrearBracket(p) {
   if(!ME?.admin){ go('/home'); return; }
   const tid = p?.tid || CURRENT_TORNEO?.id;
-  if(!tid){ alert('Seleccioná un torneo primero'); go('/torneos'); return; }
-
+  if(!tid){ alert('Seleccioná un torneo'); go('/torneos'); return; }
   setContent(loading('Cargando equipos...'));
-  const [equiposList, bracketExist] = await Promise.all([
-    getAll('equipos').then(eq => eq.filter(e => e.tid === tid)),
-    _req('GET', '/brackets?tid=eq.'+tid+'&liga_id=eq.'+getLigaId()+'&limit=1').catch(()=>[])
+  const [eqs, bList] = await Promise.all([
+    getAll('equipos').then(eq=>eq.filter(e=>e.tid===tid)),
+    _req('GET','/brackets?tid=eq.'+tid+'&liga_id=eq.'+getLigaId()+'&limit=1').catch(()=>[])
   ]);
-
-  if(bracketExist?.length > 0) {
-    // Ya existe un bracket — ir a verlo
-    window._bracketId = bracketExist[0].id;
-    go('/bracket', {tid});
-    return;
+  if(bList?.length){ window._bracketId=bList[0].id; go('/bracket',{tid}); return; }
+  if(eqs.length<2){
+    const html = '<div class="screen up" style="padding:44px 16px 90px">'
+      + '<button class="bk" onclick="go(\'/home\')">&#8592; VOLVER</button>'
+      + '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 20px">BRACKET</h2>'
+      + '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:24px;text-align:center">'
+      + '<p style="font-size:32px;margin-bottom:12px">&#9888;&#65039;</p>'
+      + '<p style="color:var(--muted);font-size:14px">Necesit&#225;s al menos 2 equipos para crear un bracket.</p>'
+      + '</div></div>';
+    setContent(html); return;
   }
-
-  if(equiposList.length < 2) {
-    setContent(`<div class="screen up" style="padding:44px 16px 90px">
-      <button class="bk" onclick="go('/home')">← VOLVER</button>
-      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 20px">BRACKET</h2>
-      <div style="background:var(--surf);border:1px solid var(--bdr2);border-radius:12px;padding:24px;text-align:center">
-        <p style="font-size:32px;margin-bottom:12px">⚠️</p>
-        <p style="color:var(--muted);font-size:14px">Necesitás al menos 2 equipos para crear un bracket.</p>
-        <button onclick="go('/equipos',{tid:'${tid}'})" class="btn btn-out" style="margin-top:16px;max-width:200px">IR A EQUIPOS</button>
-      </div>
-    </div>`);
-    return;
-  }
-
-  const slots = nextPow2(equiposList.length);
-  const byes = slots - equiposList.length;
-  const eqCards = equiposList.map(e =>
-    `<div style="background:var(--surf);border:1px solid ${e.color||'var(--bdr2)'};border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
-      <div style="width:10px;height:10px;border-radius:50%;background:${e.color||'var(--muted)'}"></div>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px">${e.nombre}</span>
-    </div>`
+  const slots = nextPow2(eqs.length);
+  const byes = slots - eqs.length;
+  const eqCards = eqs.map(e=>'<div style="background:var(--surf);border:1px solid '+(e.color||'var(--bdr2)')+';border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">'
+    + '<div style="width:10px;height:10px;border-radius:50%;background:'+(e.color||'var(--muted)')+'"></div>'
+    + '<span style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:14px">'+e.nombre+'</span></div>'
   ).join('');
-
-  setContent(`<div class="screen up" style="padding:44px 16px 90px">
-    <button class="bk" onclick="go('/home')">← VOLVER</button>
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">CREAR BRACKET</h2>
-    <p style="font-size:12px;color:var(--dim);margin-bottom:20px">${equiposList.length} equipos · ${slots} slots · ${byes} bye${byes!==1?'s':''}</p>
-
-    <p class="sec-title">EQUIPOS PARTICIPANTES</p>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">${eqCards}</div>
-
-    <div style="background:var(--surf);border:1px solid var(--bdr2);border-radius:10px;padding:14px;margin-bottom:24px">
-      <p style="font-size:12px;color:var(--muted);line-height:1.6">
-        El bracket se generará automáticamente. Los byes se distribuyen de forma equitativa. 
-        Los equipos con bye avanzan directo a la siguiente ronda.
-      </p>
-    </div>
-
-    <button onclick="window.confirmarBracket('${tid}')" class="btn btn-gold" style="letter-spacing:2px">🏆 GENERAR BRACKET</button>
-  </div>`);
-  window._bracketEquipos = equiposList;
+  const html2 = '<div class="screen up" style="padding:44px 16px 90px">'
+    + '<button class="bk" onclick="go(\'/home\')">&#8592; VOLVER</button>'
+    + '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">CREAR BRACKET</h2>'
+    + '<p style="font-size:12px;color:var(--dim);margin-bottom:20px">'+eqs.length+' equipos &middot; '+slots+' slots &middot; '+byes+' bye'+(byes!==1?'s':'')+'</p>'
+    + '<p class="sec-title">EQUIPOS PARTICIPANTES</p>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">'+eqCards+'</div>'
+    + '<button onclick="window.confirmarBracket(\''+tid+'\')" class="btn btn-gold" style="letter-spacing:2px">&#127942; GENERAR BRACKET</button>'
+    + '</div>';
+  setContent(html2);
+  window._bracketEquipos = eqs;
 }
 
 window.confirmarBracket = async function(tid) {
-  const equipos = window._bracketEquipos || [];
+  const equipos = window._bracketEquipos||[];
   if(!equipos.length){ alert('Sin equipos'); return; }
   try {
     setContent(loading('Generando bracket...'));
-    const rondas = generarBracket(equipos.map(e=>({id:e.id, nombre:e.nombre, color:e.color})));
-    const bid = 'bracket_' + Date.now().toString(36);
-    await _req('POST', '/brackets', {
-      id: bid, tid,
-      liga_id: getLigaId(),
-      nombre: 'Bracket ' + (CURRENT_TORNEO?.nombre||''),
-      estado: 'en_curso',
-      equipos: equipos.map(e=>({id:e.id, nombre:e.nombre, color:e.color})),
+    const rondas = generarBracket(equipos.map(e=>({id:e.id,nombre:e.nombre,color:e.color})));
+    const bid = 'bracket_'+Date.now().toString(36);
+    await _req('POST','/brackets',{
+      id:bid, tid, liga_id:getLigaId(),
+      nombre:'Bracket '+(CURRENT_TORNEO?.nombre||''),
+      estado:'en_curso',
+      equipos:equipos.map(e=>({id:e.id,nombre:e.nombre,color:e.color})),
       rondas
     });
     invalidateCache('brackets');
     window._bracketId = bid;
-    go('/bracket', {tid});
+    go('/bracket',{tid});
   } catch(e){ alert('Error: '+_errMsg(e)); }
 };
 
-// ── Pantalla: ver bracket ─────────────────────────────────────────
+// ── sBracket ──────────────────────────────────────────────────────
 async function sBracket(p) {
   setContent(loading('Cargando bracket...'));
   const tid = p?.tid || CURRENT_TORNEO?.id;
-  const bList = await _req('GET', '/brackets?tid=eq.'+tid+'&liga_id=eq.'+getLigaId()+'&limit=1').catch(()=>[]);
+  const bList = await _req('GET','/brackets?tid=eq.'+tid+'&liga_id=eq.'+getLigaId()+'&limit=1').catch(()=>[]);
   const bracket = bList?.[0];
   if(!bracket){ go('/crear-bracket',{tid}); return; }
   window._bracket = bracket;
-
-  const rondas = bracket.rondas || [];
+  const rondas = bracket.rondas||[];
   const isAdmin = ME?.admin;
 
-  const rondasHtml = rondas.map((ronda, ri) => {
-    const partidos = ronda.partidos.map((part, pi) => {
-      const ganA = part.ganador === part.equipo_a;
-      const ganB = part.ganador === part.equipo_b;
+  const teamRow = function(nombre, isGan, isBye) {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;'
+      + 'background:'+(isGan?'rgba(0,230,118,0.08)':'var(--surf2)')
+      + ';border-left:3px solid '+(isGan?'var(--green)':isBye?'var(--dim)':'var(--bdr2)')
+      + ';border-radius:0 4px 4px 0;margin-bottom:2px;opacity:'+(isBye?'0.4':'1')+'">'
+      + '<span style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:13px;color:'+(isGan?'var(--green)':'var(--txt)')+'">'+nombre+'</span>'
+      + (isGan?'<span style="font-size:14px">&#10003;</span>':'')
+      + '</div>';
+  };
+
+  const rondasHtml = rondas.map(function(ronda, ri) {
+    const partidos = ronda.partidos.map(function(part, pi) {
+      const ganA = part.ganador===part.equipo_a;
+      const ganB = part.ganador===part.equipo_b;
       const jugado = !!part.ganador;
-      const esBye = part.bye_a || part.bye_b;
-
-      const teamRow = (id, nombre, isGanador, isBye) =>
-        `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;
-            background:${isGanador?'rgba(0,230,118,0.08)':'var(--surf2)'};
-            border-left:3px solid ${isGanador?'var(--green)':isBye?'var(--dim)':'var(--bdr2)'};
-            border-radius:0 4px 4px 0;margin-bottom:2px;opacity:${isBye?0.4:1}">
-          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;color:${isGanador?'var(--green)':'var(--txt)'}">${nombre||'?'}</span>
-          ${isGanador?'<span style="font-size:14px">✓</span>':''}
-        </div>`;
-
-      const btnCargar = isAdmin && !jugado && !esBye && part.equipo_a && part.equipo_b
-        ? `<button onclick="window.cargarResultadoBracket('${bracket.id}',${ri},${pi},'${part.nombre_a}','${part.nombre_b}')"
-            style="width:100%;margin-top:6px;padding:7px;border-radius:6px;border:none;
-            background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;
-            font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;
-            letter-spacing:1.5px;cursor:pointer">📊 CARGAR RESULTADO</button>`
-        : '';
-
-      return `<div style="margin-bottom:10px;background:var(--card);border:1px solid var(--bdr2);border-radius:8px;padding:8px;min-width:160px">
-        ${teamRow(part.equipo_a, part.nombre_a, ganA, part.bye_a)}
-        ${teamRow(part.equipo_b, part.nombre_b, ganB, part.bye_b)}
-        ${btnCargar}
-        ${esBye&&!jugado?'<p style="font-size:9px;color:var(--dim);text-align:center;margin-top:4px">BYE — avance automático</p>':''}
-      </div>`;
+      const esBye = part.bye_a||part.bye_b;
+      let btnCargar = '';
+      if(isAdmin && !jugado && !esBye && part.equipo_a && part.equipo_b){
+        btnCargar = '<button onclick="window.cargarResultadoBracket(\''+bracket.id+'\','+ri+','+pi+',\''+part.nombre_a+'\',\''+part.nombre_b+'\')"'
+          + ' style="width:100%;margin-top:6px;padding:7px;border-radius:6px;border:none;'
+          + 'background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;'
+          + 'font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:11px;'
+          + 'letter-spacing:1.5px;cursor:pointer">&#128202; CARGAR RESULTADO</button>';
+      }
+      return '<div style="margin-bottom:10px;background:var(--card);border:1px solid var(--bdr2);border-radius:8px;padding:8px;min-width:160px">'
+        + teamRow(part.nombre_a||'?', ganA, part.bye_a)
+        + teamRow(part.nombre_b||'?', ganB, part.bye_b)
+        + btnCargar
+        + (esBye&&!jugado?'<p style="font-size:9px;color:var(--dim);text-align:center;margin-top:4px">BYE &#8212; avance autom&#225;tico</p>':'')
+        + '</div>';
     }).join('');
-
-    return `<div style="margin-right:16px;min-width:180px;flex-shrink:0">
-      <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;
-          letter-spacing:3px;color:var(--red);margin-bottom:10px;text-transform:uppercase">${ronda.nombre}</p>
-      ${partidos}
-    </div>`;
+    return '<div style="margin-right:16px;min-width:180px;flex-shrink:0">'
+      + '<p style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:10px;'
+      + 'letter-spacing:3px;color:var(--red);margin-bottom:10px;text-transform:uppercase">'+ronda.nombre+'</p>'
+      + partidos + '</div>';
   }).join('');
 
-  const campeonHtml = bracket.campeon
-    ? `<div style="background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,215,0,0.05));
-          border:2px solid rgba(255,215,0,0.4);border-radius:14px;padding:20px;text-align:center;margin-bottom:20px">
-        <p style="font-size:36px;margin-bottom:8px">🏆</p>
-        <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;letter-spacing:3px;color:var(--gold);margin-bottom:4px">CAMPEÓN</p>
-        <p style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--gold)">${(bracket.equipos||[]).find(e=>e.id===bracket.campeon)?.nombre||'?'}</p>
-      </div>`
-    : '';
+  let campeonHtml = '';
+  if(bracket.campeon){
+    const campNombre = (bracket.equipos||[]).find(function(e){return e.id===bracket.campeon;})?.nombre||'?';
+    campeonHtml = '<div style="background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(255,215,0,0.05));'
+      + 'border:2px solid rgba(255,215,0,0.4);border-radius:14px;padding:20px;text-align:center;margin-bottom:20px">'
+      + '<p style="font-size:36px;margin-bottom:8px">&#127942;</p>'
+      + '<p style="font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:10px;letter-spacing:3px;color:var(--gold);margin-bottom:4px">CAMP&#201;ON</p>'
+      + '<p style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:3px;color:var(--gold)">'+campNombre+'</p>'
+      + '</div>';
+  }
 
-  setContent(`<div class="screen up" style="padding:44px 0 90px">
-    <div style="padding:0 16px">
-      <button class="bk" onclick="go('/home')">← VOLVER</button>
-      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">${bracket.nombre}</h2>
-      <p style="font-size:12px;color:var(--dim);margin-bottom:16px">${bracket.equipos?.length||0} equipos · Eliminación directa</p>
-      ${campeonHtml}
-    </div>
-    <!-- Bracket scroll horizontal -->
-    <div style="overflow-x:auto;padding:0 16px 16px">
-      <div style="display:flex;align-items:flex-start;min-width:max-content">
-        ${rondasHtml}
-      </div>
-    </div>
-  </div>`);
+  const html = '<div class="screen up" style="padding:44px 0 90px">'
+    + '<div style="padding:0 16px">'
+    + '<button class="bk" onclick="go(\'/home\')">&#8592; VOLVER</button>'
+    + '<h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">'+bracket.nombre+'</h2>'
+    + '<p style="font-size:12px;color:var(--dim);margin-bottom:16px">'+(bracket.equipos?.length||0)+' equipos &middot; Eliminaci&#243;n directa</p>'
+    + campeonHtml
+    + '</div>'
+    + '<div style="overflow-x:auto;padding:0 16px 16px">'
+    + '<div style="display:flex;align-items:flex-start;min-width:max-content">'+rondasHtml+'</div>'
+    + '</div></div>';
+  setContent(html);
 }
 
 window.cargarResultadoBracket = function(bracketId, ri, pi, nombreA, nombreB) {
   const b = window._bracket;
   if(!b) return;
   const part = b.rondas[ri].partidos[pi];
-
-  // Simple modal
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px';
-  overlay.innerHTML = `<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:14px;padding:24px;width:100%;max-width:320px">
-    <h3 style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:16px;text-align:center">RESULTADO</h3>
-    <p style="font-size:12px;color:var(--dim);text-align:center;margin-bottom:16px">${nombreA} vs ${nombreB}</p>
-    <button onclick="window._setGanadorBracket('${bracketId}',${ri},${pi},'${part.equipo_a}','${nombreA}')" 
-      class="btn btn-out" style="margin-bottom:8px">🏆 ${nombreA}</button>
-    <button onclick="window._setGanadorBracket('${bracketId}',${ri},${pi},'${part.equipo_b}','${nombreB}')"
-      class="btn btn-out" style="margin-bottom:8px">🏆 ${nombreB}</button>
-    <button onclick="this.closest('div[style]').parentNode.remove()" class="btn btn-dim">CANCELAR</button>
-  </div>`;
+  overlay.innerHTML = '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:14px;padding:24px;width:100%;max-width:320px">'
+    + '<h3 style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:16px;text-align:center">RESULTADO</h3>'
+    + '<p style="font-size:12px;color:var(--dim);text-align:center;margin-bottom:16px">'+nombreA+' vs '+nombreB+'</p>'
+    + '<button onclick="window._setGanadorBracket(\''+bracketId+'\','+ri+','+pi+',\''+part.equipo_a+'\',\''+nombreA+'\')" class="btn btn-out" style="margin-bottom:8px">&#127942; '+nombreA+'</button>'
+    + '<button onclick="window._setGanadorBracket(\''+bracketId+'\','+ri+','+pi+',\''+part.equipo_b+'\',\''+nombreB+'\')" class="btn btn-out" style="margin-bottom:8px">&#127942; '+nombreB+'</button>'
+    + '<button onclick="document.querySelector(\'[data-overlay]\').remove()" class="btn btn-dim">CANCELAR</button>'
+    + '</div>';
+  overlay.setAttribute('data-overlay','1');
   document.body.appendChild(overlay);
 };
 
 window._setGanadorBracket = async function(bracketId, ri, pi, ganadorId, ganadorNombre) {
-  document.querySelector('div[style*="position:fixed"][style*="z-index:999"]')?.remove();
+  document.querySelector('[data-overlay]')?.remove();
   try {
     setContent(loading('Actualizando bracket...'));
     const b = window._bracket;
     let rondas = avanzarGanador(b.rondas, ri, pi, ganadorId, ganadorNombre);
-
-    // Check if final — assign campeon
-    const esUltimaRonda = ri === rondas.length - 1;
-    const campeon = esUltimaRonda ? ganadorId : b.campeon;
-
-    // Update estado
-    const allDone = rondas.every(r => r.partidos.every(p => p.ganador || p.bye_a || p.bye_b));
+    const esUltima = ri===rondas.length-1;
+    const campeon = esUltima ? ganadorId : (b.campeon||null);
     const estado = campeon ? 'finalizado' : 'en_curso';
-
-    await _req('PATCH', '/brackets?id=eq.'+bracketId, {rondas, campeon: campeon||null, estado});
+    await _req('PATCH','/brackets?id=eq.'+bracketId,{rondas, campeon, estado});
     invalidateCache('brackets');
-    const tid = b.tid;
-    const updated = await _req('GET', '/brackets?id=eq.'+bracketId+'&limit=1');
-    window._bracket = updated?.[0] || b;
-    sBracket({tid});
+    const updated = await _req('GET','/brackets?id=eq.'+bracketId+'&limit=1');
+    window._bracket = updated?.[0]||b;
+    sBracket({tid:b.tid});
   } catch(e){ alert('Error: '+_errMsg(e)); }
 };
 
@@ -2049,138 +1972,201 @@ window.guardarLiga = async function() {
 
 
 // ═══════ SUPERADMIN — PANEL DE LIGAS ═══════
-async function sSuperAdmin() {
+async function sSuperAdmin(p) {
   if(!ME?.superadmin){ go('/home'); return; }
-  setContent(loading('Cargando ligas...'));
-  const ligas = await _req('GET', '/ligas?select=*&order=created_at.desc').catch(()=>[]);
-  const subs  = await _req('GET', '/suscripciones?select=*').catch(()=>[]);
-  const subMap = {};
-  (subs||[]).forEach(s=>subMap[s.liga_id]=s);
+  const view = p?.view || 'ligas';
 
-  const rows = (ligas||[]).map(l => {
+  setContent(loading('Cargando panel...'));
+
+  // Load all data in parallel
+  const [ligas, allJugadores, allPartidos, allTorneos, subs] = await Promise.all([
+    _req('GET', '/ligas?select=*&order=created_at.desc').catch(()=>[]),
+    _req('GET', '/jugadores?select=id,liga_id').catch(()=>[]),
+    _req('GET', '/partidos?select=id,liga_id').catch(()=>[]),
+    _req('GET', '/torneos?select=id,liga_id').catch(()=>[]),
+    _req('GET', '/suscripciones?select=*').catch(()=>[])
+  ]);
+
+  // Build metrics per liga
+  const metrics = {};
+  (allJugadores||[]).forEach(j => {
+    if(!metrics[j.liga_id]) metrics[j.liga_id] = {jugadores:0, partidos:0, torneos:0};
+    metrics[j.liga_id].jugadores++;
+  });
+  (allPartidos||[]).forEach(p => {
+    if(!metrics[p.liga_id]) metrics[p.liga_id] = {jugadores:0, partidos:0, torneos:0};
+    metrics[p.liga_id].partidos++;
+  });
+  (allTorneos||[]).forEach(t => {
+    if(!metrics[t.liga_id]) metrics[t.liga_id] = {jugadores:0, partidos:0, torneos:0};
+    metrics[t.liga_id].torneos++;
+  });
+
+  const subMap = {};
+  (subs||[]).forEach(s => subMap[s.liga_id] = s);
+
+  // Summary stats
+  const totalLigas   = (ligas||[]).length;
+  const totalActivas = (ligas||[]).filter(l=>l.estado==='activo').length;
+  const totalPro     = (ligas||[]).filter(l=>l.plan==='pro').length;
+  const totalTrial   = (ligas||[]).filter(l=>l.plan==='trial').length;
+
+  // Liga cards
+  const ligaCards = (ligas||[]).map(l => {
+    const m = metrics[l.id] || {jugadores:0, partidos:0, torneos:0};
     const sub = subMap[l.id] || {};
-    return `<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:10px;padding:12px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <p style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;color:var(--txt)">${l.nombre}</p>
-          <p style="font-size:11px;color:var(--dim)">${l.deporte} · ${l.admin_email}</p>
+    const isActivo = l.estado === 'activo';
+    const isPro = l.plan === 'pro';
+    const colorEstado = isActivo ? 'var(--green)' : 'var(--red)';
+    const bgEstado = isActivo ? 'rgba(0,230,118,0.08)' : 'rgba(255,50,50,0.08)';
+
+    return `<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:14px;padding:14px;margin-bottom:10px">
+      <!-- Header row -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+            <div style="width:10px;height:10px;border-radius:50%;background:${l.color||'var(--red)'}"></div>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px">${l.nombre}</span>
+          </div>
+          <div style="font-size:11px;color:var(--dim)">${l.deporte} · ${l.admin_email}</div>
         </div>
-        <div style="text-align:right">
-          <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:${l.estado==='activo'?'rgba(0,230,118,0.1)':'rgba(255,50,50,0.1)'};color:${l.estado==='activo'?'var(--green)':'var(--red)'};border:1px solid ${l.estado==='activo'?'rgba(0,230,118,0.3)':'rgba(255,50,50,0.3)'};font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1px">${l.estado.toUpperCase()}</span>
-          <p style="font-size:10px;color:var(--dim);margin-top:4px">${(l.plan||'trial').toUpperCase()}</p>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span style="font-size:9px;padding:2px 8px;border-radius:4px;
+            background:${bgEstado};color:${colorEstado};
+            border:1px solid ${colorEstado}40;
+            font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1.5px">
+            ${l.estado.toUpperCase()}
+          </span>
+          <span style="font-size:9px;padding:2px 8px;border-radius:4px;
+            background:${isPro?'rgba(255,215,0,0.08)':'rgba(255,255,255,0.04)'};
+            color:${isPro?'var(--gold)':'var(--dim)'};
+            border:1px solid ${isPro?'rgba(255,215,0,0.25)':'var(--bdr2)'};
+            font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1.5px">
+            ${(l.plan||'trial').toUpperCase()}
+          </span>
         </div>
+      </div>
+
+      <!-- Metrics -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="background:var(--surf);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--txt)">${m.jugadores}</div>
+          <div style="font-size:8px;color:var(--dim);letter-spacing:1px">JUGADORES</div>
+        </div>
+        <div style="background:var(--surf);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--txt)">${m.torneos}</div>
+          <div style="font-size:8px;color:var(--dim);letter-spacing:1px">TORNEOS</div>
+        </div>
+        <div style="background:var(--surf);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--txt)">${m.partidos}</div>
+          <div style="font-size:8px;color:var(--dim);letter-spacing:1px">PARTIDOS</div>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${isActivo
+          ? `<button onclick="window.superAdminAccion('${l.id}','suspender')"
+              style="flex:1;padding:8px;border-radius:7px;border:1px solid rgba(255,50,50,0.3);
+              background:rgba(255,50,50,0.06);color:var(--red);font-family:'Barlow Condensed',sans-serif;
+              font-weight:900;font-size:11px;letter-spacing:1.5px;cursor:pointer">
+              ⏸ SUSPENDER</button>`
+          : `<button onclick="window.superAdminAccion('${l.id}','reactivar')"
+              style="flex:1;padding:8px;border-radius:7px;border:1px solid rgba(0,230,118,0.3);
+              background:rgba(0,230,118,0.06);color:var(--green);font-family:'Barlow Condensed',sans-serif;
+              font-weight:900;font-size:11px;letter-spacing:1.5px;cursor:pointer">
+              ▶ REACTIVAR</button>`
+        }
+        <button onclick="window.superAdminCambiarPlan('${l.id}','${l.nombre}','${l.plan||'trial'}')"
+          style="flex:1;padding:8px;border-radius:7px;border:1px solid rgba(255,215,0,0.25);
+          background:rgba(255,215,0,0.05);color:var(--gold);font-family:'Barlow Condensed',sans-serif;
+          font-weight:900;font-size:11px;letter-spacing:1.5px;cursor:pointer">
+          💎 PLAN</button>
+        <button onclick="window.superAdminImpersonate('${l.id}')"
+          style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--bdr2);
+          background:var(--surf);color:var(--muted);font-family:'Barlow Condensed',sans-serif;
+          font-weight:900;font-size:11px;letter-spacing:1.5px;cursor:pointer">
+          👁 VER</button>
       </div>
     </div>`;
   }).join('');
 
   setContent(`<div class="screen up" style="padding:44px 16px 90px">
     <button class="bk" onclick="go('/home')">← VOLVER</button>
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">PANEL DE LIGAS</h2>
-    <p style="font-size:12px;color:var(--dim);margin-bottom:20px">${(ligas||[]).length} liga${(ligas||[]).length!==1?'s':''} registrada${(ligas||[]).length!==1?'s':''}</p>
-    ${rows || '<p style="color:var(--dim);text-align:center">No hay ligas registradas.</p>'}
-  </div>`);
-}
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin:8px 0 4px">PANEL COMERCIAL</h2>
+    <p style="font-size:11px;color:var(--dim);margin-bottom:20px">Gestión global de ligas · Solo superadmin</p>
 
-
-// ═══════ CREAR LIGA (onboarding) ═══════
-async function sCrearLiga() {
-  setContent(`<div class="up" style="min-height:100dvh;display:flex;flex-direction:column;padding:28px 24px;background:transparent;overflow-y:auto">
-    <button class="bk" onclick="go('/login')" style="margin-bottom:24px">← VOLVER</button>
-    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;margin-bottom:6px">CREAR MI LIGA</h2>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:28px">Configurá tu liga en menos de 2 minutos.</p>
-
-    <label class="lbl">NOMBRE DE LA LIGA</label>
-    <input class="inp" id="cl-nombre" type="text" placeholder="Ej: Liga del Barrio" style="margin-bottom:14px"/>
-
-    <label class="lbl">DEPORTE</label>
-    <select id="cl-deporte" class="inp" style="margin-bottom:14px">
-      <option value="futbol">⚽ Fútbol</option>
-      <option value="padel">🎾 Pádel</option>
-      <option value="basquet">🏀 Básquet</option>
-      <option value="voley">🏐 Vóley</option>
-      <option value="tenis">🎾 Tenis</option>
-      <option value="otro">🏅 Otro</option>
-    </select>
-
-    <label class="lbl">TU EMAIL (será el admin)</label>
-    <input class="inp" id="cl-email" type="email" placeholder="admin@tuliga.com" style="margin-bottom:14px"/>
-
-    <label class="lbl">CONTRASEÑA</label>
-    <input class="inp" id="cl-pass" type="password" placeholder="Mínimo 6 caracteres" style="margin-bottom:14px"/>
-
-    <label class="lbl">COLOR DE LA LIGA</label>
-    <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
-      ${['#ff2020','#ff8c00','#ffd700','#00e676','#00b4ff','#8b5cf6','#ff69b4','#ffffff'].map(col=>
-        `<div onclick="this.parentNode.querySelectorAll('div').forEach(d=>d.style.outline='none');this.style.outline='3px solid '+\'${col}\';document.getElementById('cl-color').value=\'${col}\'"
-          style="width:36px;height:36px;border-radius:50%;background:${col};cursor:pointer;border:2px solid rgba(255,255,255,0.2)"></div>`
-      ).join('')}
-      <input id="cl-color" type="hidden" value="#ff2020"/>
+    <!-- Summary cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">
+      <div style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:14px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--txt)">${totalLigas}</div>
+        <div style="font-size:9px;color:var(--dim);letter-spacing:2px">TOTAL LIGAS</div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(0,230,118,0.2);border-radius:12px;padding:14px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--green)">${totalActivas}</div>
+        <div style="font-size:9px;color:var(--dim);letter-spacing:2px">ACTIVAS</div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(255,215,0,0.2);border-radius:12px;padding:14px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)">${totalPro}</div>
+        <div style="font-size:9px;color:var(--dim);letter-spacing:2px">PLAN PRO</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:14px;text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--muted)">${totalTrial}</div>
+        <div style="font-size:9px;color:var(--dim);letter-spacing:2px">TRIAL</div>
+      </div>
     </div>
 
-    <p id="cl-err" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none"></p>
-    <button onclick="window.crearLiga()" class="btn btn-gold" style="letter-spacing:2px;font-size:16px">🏆 CREAR LIGA</button>
+    <!-- Nueva liga button -->
+    <button onclick="go('/crear-liga')" class="btn btn-out" style="margin-bottom:20px;letter-spacing:2px">
+      + CREAR NUEVA LIGA
+    </button>
 
-    <p style="font-size:11px;color:var(--dim);text-align:center;margin-top:16px">
-      Al crear tu liga aceptás los términos de uso. El primer mes es gratis.
-    </p>
+    <!-- Liga list -->
+    <p class="sec-title">LIGAS REGISTRADAS</p>
+    ${ligaCards || '<p style="color:var(--dim);text-align:center;padding:20px">No hay ligas aún.</p>'}
   </div>`);
 }
 
-window.crearLiga = async function() {
-  const nombre  = document.getElementById('cl-nombre')?.value?.trim();
-  const deporte = document.getElementById('cl-deporte')?.value;
-  const email   = document.getElementById('cl-email')?.value?.trim();
-  const pass    = document.getElementById('cl-pass')?.value?.trim();
-  const color   = document.getElementById('cl-color')?.value || '#ff2020';
-  const errEl   = document.getElementById('cl-err');
-
-  if(!nombre){ errEl.textContent='Ingresá el nombre de la liga'; errEl.style.display='block'; return; }
-  if(!email) { errEl.textContent='Ingresá tu email'; errEl.style.display='block'; return; }
-  if(!pass || pass.length < 6){ errEl.textContent='La contraseña debe tener al menos 6 caracteres'; errEl.style.display='block'; return; }
-  errEl.style.display='none';
-
+// ── Acciones superadmin ─────────────────────────────────────────────
+window.superAdminAccion = async function(ligaId, accion) {
+  const estado = accion === 'suspender' ? 'suspendido' : 'activo';
+  const msg = accion === 'suspender'
+    ? '¿Suspender esta liga? Los usuarios no podrán acceder.'
+    : '¿Reactivar esta liga?';
+  if(!confirm(msg)) return;
   try {
-    setContent(loading('Creando tu liga...'));
-
-    // 1. Register user in Supabase Auth
-    const {SUPA_URL: su, SUPA_KEY: sk} = _getConfig();
-    const authResp = await fetch(su + '/auth/v1/signup', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':sk},
-      body: JSON.stringify({email, password: pass})
-    });
-    const authData = await authResp.json();
-    if(!authData.user?.id) throw new Error(authData.message || 'Error al crear cuenta');
-
-    // 2. Create liga
-    const ligaId = 'liga_' + Date.now().toString(36);
-    await _req('POST', '/ligas', {
-      id: ligaId, nombre, deporte, color,
-      admin_email: email, estado: 'activo', plan: 'trial'
-    });
-
-    // 3. Create admin jugador linked to auth
-    const jId = 'j_' + Date.now().toString(36);
-    await _req('POST', '/jugadores', {
-      id: jId, nombre: email.split('@')[0], admin: true,
-      email, auth_user_id: authData.user.id,
-      liga_id: ligaId, convocado: true
-    });
-
-    setContent(`<div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:transparent;text-align:center">
-      <div style="font-size:56px;margin-bottom:20px">🏆</div>
-      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:4px;color:var(--reflector);margin-bottom:12px">¡LIGA CREADA!</h2>
-      <p style="color:var(--muted);font-size:14px;margin-bottom:8px"><strong style="color:var(--white)">${nombre}</strong> ya está activa.</p>
-      <p style="color:var(--dim);font-size:12px;margin-bottom:32px">Revisá tu email para confirmar tu cuenta.</p>
-      <button onclick="go('/login')" class="btn btn-gold" style="max-width:240px">INGRESAR A MI LIGA</button>
-    </div>`);
-  } catch(e) {
-    const errEl2 = document.getElementById('cl-err');
-    if(errEl2){ errEl2.textContent = 'Error: ' + _errMsg(e); errEl2.style.display='block'; }
-    else { alert('Error: ' + _errMsg(e)); }
-    sCrearLiga();
-  }
+    await _req('PATCH', '/ligas?id=eq.'+ligaId, {estado});
+    alert('✅ Liga ' + (accion==='suspender'?'suspendida':'reactivada'));
+    sSuperAdmin();
+  } catch(e){ alert('Error: '+_errMsg(e)); }
 };
+
+window.superAdminCambiarPlan = async function(ligaId, nombre, planActual) {
+  const planes = ['trial','basic','pro'];
+  const opciones = planes.map((p,i) => (i+1)+'. '+p.toUpperCase()+(p===planActual?' (actual)':'')).join('\n');
+  const input = prompt('Plan para '+nombre+':\n'+opciones+'\n\nIngresá el número:');
+  if(!input) return;
+  const nuevoPlan = planes[parseInt(input)-1];
+  if(!nuevoPlan){ alert('Opción inválida'); return; }
+  try {
+    await _req('PATCH', '/ligas?id=eq.'+ligaId, {plan: nuevoPlan});
+    // Update suscripcion
+    await _req('PATCH', '/suscripciones?liga_id=eq.'+ligaId, {plan: nuevoPlan}).catch(()=>{});
+    alert('✅ Plan actualizado a ' + nuevoPlan.toUpperCase());
+    sSuperAdmin();
+  } catch(e){ alert('Error: '+_errMsg(e)); }
+};
+
+window.superAdminImpersonate = async function(ligaId) {
+  // Temporarily switch to see that liga's data
+  const prev = CURRENT_LIGA;
+  const ligas = await _req('GET', '/ligas?id=eq.'+ligaId+'&limit=1').catch(()=>[]);
+  if(!ligas?.[0]){ alert('Liga no encontrada'); return; }
+  CURRENT_LIGA = ligas[0];
+  alert('Viendo como: ' + CURRENT_LIGA.nombre + '. Los datos mostrados corresponden a esa liga. Volvé al superadmin para restaurar.');
+  go('/home');
+};
+
 
 function sLogin(){
   // Entrada al túnel del estadio: capas estáticas, sin loops, tipografía protagonista.
@@ -5825,6 +5811,18 @@ async function sMatchJugador() {
   } catch(e) {
     console.warn('Seed failed:', e.message);
   }
+  // Detect Supabase password reset token in URL hash
+  const _hash = window.location.hash;
+  if(_hash && _hash.includes('type=recovery') && _hash.includes('access_token=')) {
+    const _params = new URLSearchParams(_hash.slice(1));
+    const _token = _params.get('access_token');
+    if(_token) {
+      window._resetToken = _token;
+      history.replaceState(null,'',window.location.pathname);
+      await sResetPassword();
+      return;
+    }
+  }
   await render();
 })();
 
@@ -5914,6 +5912,53 @@ async function initPush() {
     await registerPush();
   }
 }
+
+// ═══════ RESET PASSWORD ═══════
+async function sResetPassword() {
+  const html = "<div class=\"screen up\" style=\"padding:44px 24px 90px\">"
+    + "<div style=\"text-align:center;margin-bottom:32px\">"
+    + "<div style=\"font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:6px;color:var(--gold)\">EMABOL</div>"
+    + "<div style=\"font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:6px;color:var(--muted);margin-top:2px\">NUEVA CONTRASE&Ntilde;A</div>"
+    + "</div>"
+    + "<label class=\"lbl\">NUEVA CONTRASE&Ntilde;A</label>"
+    + "<input class=\"inp\" id=\"rp-pass1\" type=\"password\" placeholder=\"M&iacute;nimo 6 caracteres\" style=\"margin-bottom:12px\"/>"
+    + "<label class=\"lbl\">CONFIRMAR CONTRASE&Ntilde;A</label>"
+    + "<input class=\"inp\" id=\"rp-pass2\" type=\"password\" placeholder=\"Repet&iacute; la contrase&ntilde;a\" style=\"margin-bottom:20px\"/>"
+    + "<p id=\"rp-err\" style=\"color:var(--red);font-size:12px;text-align:center;margin-bottom:12px;display:none\"></p>"
+    + "<button onclick=\"window.confirmarResetPassword()\" class=\"btn btn-gold\" style=\"letter-spacing:2px\">GUARDAR CONTRASE&Ntilde;A</button>"
+    + "</div>";
+  setContent(html);
+}
+
+window.confirmarResetPassword = async function() {
+  const pass1 = document.getElementById("rp-pass1")?.value?.trim();
+  const pass2 = document.getElementById("rp-pass2")?.value?.trim();
+  const errEl = document.getElementById("rp-err");
+  if(!pass1||pass1.length<6){ errEl.textContent="Mínimo 6 caracteres"; errEl.style.display="block"; return; }
+  if(pass1!==pass2){ errEl.textContent="Las contraseñas no coinciden"; errEl.style.display="block"; return; }
+  errEl.style.display="none";
+  try {
+    const cfg = _CFG||{};
+    const resp = await fetch(cfg.url+"/auth/v1/user",{
+      method:"PUT",
+      headers:{"Content-Type":"application/json","apikey":cfg.key,"Authorization":"Bearer "+window._resetToken},
+      body:JSON.stringify({password:pass1})
+    });
+    if(!resp.ok){ const e=await resp.json().catch(()=>({})); throw new Error(e.message||"Error"); }
+    window._resetToken = null;
+    setContent("<div class=\"screen up\" style=\"padding:44px 24px;text-align:center\">"
+      + "<div style=\"font-size:56px;margin-bottom:16px\">&#9989;</div>"
+      + "<h2 style=\"font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--green);margin-bottom:8px\">LISTO!</h2>"
+      + "<p style=\"color:var(--muted);font-size:14px;margin-bottom:32px\">Contraseña actualizada correctamente.</p>"
+      + "<button onclick=\"go('/login')\" class=\"btn btn-gold\" style=\"max-width:220px\">INGRESAR</button>"
+      + "</div>");
+  } catch(e) {
+    const errEl2=document.getElementById("rp-err");
+    if(errEl2){ errEl2.textContent="Error: "+_errMsg(e); errEl2.style.display="block"; }
+    else { alert("Error: "+_errMsg(e)); }
+  }
+};
+
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
