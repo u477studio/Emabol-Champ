@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_36.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_37.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -885,7 +885,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/33b0d364-5caf-49c8-86ca-6f97fe5b3396"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/b1734a0f-80dc-4762-afaf-5795674f4f68"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -5123,21 +5123,20 @@ window.doRegister = async function() {
 
 // ═══════ FORGOT PASSWORD SCREEN ═══════
 function sForgot() {
-  setContent(`<div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;background:transparent">
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:40px;margin-bottom:8px">🔑</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;color:var(--red)">RECUPERAR CONTRASEÑA</div>
-    </div>
-    <div style="width:100%;max-width:340px">
-      <label class="lbl">TU EMAIL</label>
-      <input class="inp" id="fp-email" type="email" placeholder="tu@email.com" style="margin-bottom:16px"/>
-      <p id="fp-msg" style="font-size:12px;text-align:center;margin-bottom:10px;display:none"></p>
-      <button class="btn btn-gold" onclick="window.doForgot()" style="font-size:15px;letter-spacing:2px">ENVIAR LINK</button>
-      <p style="font-size:11px;color:var(--dim);text-align:center;margin-top:16px">
-        <button onclick="go('/login')" style="background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;text-decoration:underline">Volver al login</button>
-      </p>
-    </div>
-  </div>`);
+  var html = "<div style=\"min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px;background:transparent\">"
+    + "<div style=\"text-align:center;margin-bottom:24px\">"
+    + "<div style=\"font-size:40px;margin-bottom:8px\">&#128273;</div>"
+    + "<div style=\"font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:22px;color:var(--red)\">RECUPERAR CONTRASE&Ntilde;A</div>"
+    + "</div>"
+    + "<div style=\"width:100%;max-width:340px\">"
+    + "<label class=\"lbl\">TU EMAIL</label>"
+    + "<input class=\"inp\" id=\"fp-email\" type=\"email\" placeholder=\"tu@email.com\" style=\"margin-bottom:16px\"/>"
+    + "<p id=\"fp-msg\" style=\"font-size:12px;text-align:center;margin-bottom:10px;display:none\"></p>"
+    + "<button class=\"btn btn-gold\" onclick=\"window.doForgot()\" style=\"font-size:15px;letter-spacing:2px\">ENVIAR LINK</button>"
+    + "<p style=\"font-size:11px;color:var(--dim);text-align:center;margin-top:16px\">"
+    + "<button onclick=\"go('/login')\" style=\"background:none;border:none;color:var(--red);font-size:11px;cursor:pointer;text-decoration:underline\">Volver al login</button>"
+    + "</p></div></div>";
+  setContent(html);
 }
 
 window.doForgot = async function() {
