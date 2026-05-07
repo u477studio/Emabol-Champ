@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_37.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_39.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -885,7 +885,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/b1734a0f-80dc-4762-afaf-5795674f4f68"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/0fb341f4-05d1-4614-b5f2-5c3ad1b284ad"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1515,7 +1515,7 @@ function renderNav(){
   return torneoBar+`<nav class="nav">${items.map(x=>{const on=R===x.p||R.startsWith(x.p+'/');return`<button class="ni${on?' on':''}" onclick="go('${x.p}')" style="position:relative">${on?'<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:var(--red);border-radius:0 0 2px 2px"></div>':''}<span class="ni-ico">${x.i}</span>${x.l}</button>`;}).join('')}</nav>`;
 }
 window.go=function(p,params={}){
-  if(!ME&&p!=='/login'&&p!=='/setup')p='/login';
+  if(!ME&&p!=='/login'&&p!=='/setup'&&p!=='/forgot'&&p!=='/crear-liga')p='/login';
   R=p;RP=params||{};
   render().catch(e=>{
     console.error('render error:',e);
