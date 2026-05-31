@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_44.html -->
+<!-- saved from url=(0051)file:///C:/Users/ema/Downloads/emabol-champ_45.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -863,7 +863,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/732b834f-9e15-4c98-a108-9d1cf68cff4d"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/0fb6e340-618f-490c-98b8-a907ddd7e424"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -3063,6 +3063,13 @@ async function sRanking(p){
       ${t.emoji||'⚽'} ${t.nombre.split(' ').slice(0,2).join(' ')}
     </button>`).join('');
 
+  const histTab = '<button onclick="go(\'/ranking\',{view:\'historial\'})"'
+    +' style="padding:7px 14px;border-radius:6px;border:none;'
+    +'background:'+(view==='historial'?'var(--gold)':'#1a1a2e')+';'
+    +'color:'+(view==='historial'?'#000':'var(--muted)')+';'
+    +'font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:11px;letter-spacing:1px;cursor:pointer;white-space:nowrap">'
+    +'&#128218; HISTORIAL</button>';
+
   // Render ranking for selected view
   let rankHTML = '';
 
@@ -3097,6 +3104,44 @@ async function sRanking(p){
     }
   }
 
+  // HISTORIAL view
+  if(view==='historial') {
+    const archivados = ts.filter(t=>t.estado==='archivado').sort((a,b)=>a.ini<b.ini?-1:1);
+    const medals = ['&#129351;','&#129352;','&#129353;'];
+    const mColors = ['#FFD700','#C0C0C0','#CD7F32'];
+    if(!archivados.length) {
+      rankHTML = '<div style="padding:40px;text-align:center;color:var(--dim)"><p style="font-size:32px;margin-bottom:12px">&#128197;</p><p style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:14px;letter-spacing:2px">SIN HISTORIAL AUN</p></div>';
+    } else {
+      rankHTML = archivados.map(function(t){
+        const podio = allR.filter(function(r){return r.tid===t.id&&r.jid;}).sort(function(a,b){return b.pts-a.pts;}).slice(0,3);
+        const podioRows = podio.map(function(r,i){
+          const j = jMap[r.jid];
+          const foto = j&&j.foto
+            ? '<img src="'+j.foto+'" style="width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:top;flex-shrink:0">'
+            : '<div style="width:40px;height:40px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#128100;</div>';
+          return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;'+(i<2?'border-bottom:1px solid var(--bdr)':'')+'">'
+            +'<span style="font-family:Bebas Neue,sans-serif;font-size:24px;color:'+mColors[i]+';width:28px;text-align:center">'+medals[i]+'</span>'
+            +foto
+            +'<div style="flex:1">'
+              +'<div style="font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:15px;color:var(--txt)">'+(j?j.nombre:r.jid)+'</div>'
+              +'<div style="font-size:11px;color:var(--dim)">'+r.pts+' pts</div>'
+            +'</div>'
+          +'</div>';
+        }).join('');
+        return '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:16px;padding:16px;margin-bottom:14px">'
+          +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+            +'<div>'
+              +'<div style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:2px;color:var(--white)">'+t.nombre+'</div>'
+              +'<div style="font-size:10px;color:var(--dim);letter-spacing:1px">'+t.ini+' — '+t.fin+'</div>'
+            +'</div>'
+            +'<span style="font-size:28px">&#127942;</span>'
+          +'</div>'
+          +podioRows
+          +'</div>';
+      }).join('');
+    }
+  }
+
   setContent(`<div class="screen up" style="padding:76px 15px 90px">
     <div style="margin-bottom:16px">
       <p style="font-size:10px;color:var(--red);font-weight:800;letter-spacing:3px">🏆 ${tr('ranking')}</p>
@@ -3106,7 +3151,7 @@ async function sRanking(p){
         style="padding:7px 14px;border-radius:6px;border:none;background:${view==='general'?'var(--gold)':'#1a1a2e'};color:${view==='general'?'#000':'var(--muted)'};font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:11px;letter-spacing:1px;cursor:pointer;white-space:nowrap;text-transform:uppercase">
         🌐 ${tr('general_table')}
       </button>
-      ${tabs}
+      ${tabs}${histTab}
     </div>
     ${rankHTML}
   </div>${renderNav()}`);
