@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0061)file:///C:/Users/emanuel.rufino/Downloads/emabol-champ_5.html -->
+<!-- saved from url=(0061)file:///C:/Users/emanuel.rufino/Downloads/emabol-champ_6.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -863,7 +863,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/789d6048-076f-4e89-b657-df3cb0def924"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/aacb0c15-8a45-456c-9659-953e3306d74e"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -2141,11 +2141,17 @@ async function sAmistoso() {
   const convs  = await getAll('convocatorias').catch(()=>[]);
   const conv   = convs.find(function(cv){ return cv.tid==='amistoso' && cv.estado==='en_proceso'; }) || null;
   if(!conv){
-    setContent('<div class="screen up" style="padding:44px 20px;text-align:center">'
+    let htmlNoConv = '<div class="screen up" style="padding:44px 20px;text-align:center">'
       + '<p style="font-size:40px;margin-bottom:16px">&#128197;</p>'
       + '<p style="color:var(--dim);font-family:Barlow Condensed,sans-serif;font-size:16px;letter-spacing:2px">SIN AMISTOSO PROGRAMADO</p>'
-      + '<button onclick="go(\"/premiacion\")" class="btn btn-out" style="margin-top:24px;max-width:200px">&#8592; VOLVER</button>'
-      + '</div>');
+      + '<button onclick="go(\"/premiacion\")" class="btn btn-out" style="margin-top:24px;max-width:200px">&#8592; VOLVER</button>';
+    if(ME?.admin) {
+      htmlNoConv += '<button id="btn-nuevo-amistoso" style="width:100%;margin-top:12px;padding:14px;border-radius:12px;font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;border:none;background:rgba(0,230,118,0.1);border:1px solid var(--green);color:var(--green)">+ CREAR AMISTOSO</button>';
+    }
+    htmlNoConv += '</div>';
+    setContent(htmlNoConv);
+    const btnNA = document.getElementById('btn-nuevo-amistoso');
+    if(btnNA) btnNA.onclick = function(){ window.crearNuevoAmistoso(); };
     return;
   }
   const jMap = {}; allJs.forEach(function(j){ jMap[j.id]=j; });
