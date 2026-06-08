@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0061)file:///C:/Users/emanuel.rufino/Downloads/emabol-champ_6.html -->
+<!-- saved from url=(0061)file:///C:/Users/emanuel.rufino/Downloads/emabol-champ_7.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -107,7 +107,7 @@ body::after{
 }
 
 /* ── Screen ── */
-.screen{flex:1;overflow-y:auto;padding-bottom:110px;background:var(--bg);position:relative;z-index:2}
+.screen{flex:1;overflow-y:auto;padding-bottom:160px;background:var(--bg);position:relative;z-index:2}
 
 /* ── Typography — bigger, with more air ── */
 h1,h2{font-family:'Bebas Neue',sans-serif;letter-spacing:3px;color:var(--white)}
@@ -863,7 +863,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/aacb0c15-8a45-456c-9659-953e3306d74e"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/96dea6b9-fc2f-49c2-a7db-7abbdd52d6b6"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -1545,7 +1545,11 @@ async function render(){
     }
     if(R==='/register'){sRegister();return;}
     if(R==='/pending-auth'){if(ME?.admin) await sPendingAuth(); else go('/home'); return;}
-    if(R==='/torneos'){await sTorneos();return;}
+    if(R==='/torneos'){
+      const _tts = await getAll('torneos').catch(()=>[]);
+      if(!_tts.find(function(t){ return t.estado==='activo'; })){ sPremiacion(); return; }
+      await sTorneos(); return;
+    }
     if(R==='/torneo-new'){await sTorneoForm('');return;}
     if(R==='/torneo-edit'){await sTorneoForm(RP.tid);return;}
     if(R==='/equipos'){await sEquipos(RP.tid);return;}
@@ -2329,7 +2333,12 @@ window.doLogin=async function(){
   const btn=document.querySelector('.btn-gold');
   if(btn){btn.textContent='...';btn.disabled=true;}
   const res=await loginAsync(u,p);
-  if(res.ok){ go(ME && ME.admin ? '/torneos' : '/home'); }
+  if(res.ok){ (async function(){
+    const _lts2 = await getAll('torneos').catch(()=>[]);
+    const _la2 = _lts2.find(function(t){ return t.estado==='activo'; });
+    if(_la2){ go(ME && ME.admin ? '/torneos' : '/home'); }
+    else { go('/premiacion'); }
+  })(); }
   else{
     e.textContent=res.msg||'Error al ingresar';e.style.display='block';
     if(btn){btn.textContent='INGRESAR';btn.disabled=false;}
@@ -2667,6 +2676,9 @@ async function sHome(){
         </div>
         <div onclick="go('/gestion-liga')" style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">⚙️</span><div><p style="font-size:12px;font-weight:900;color:var(--muted);font-family:'Barlow Condensed',sans-serif">MI LIGA</p><p style="font-size:10px;color:var(--dim)">Configuración</p></div>
+        </div>
+        <div onclick="go('/amistoso')" style="background:var(--card);border:1px solid rgba(0,230,118,0.2);border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">⚽</span><div><p style="font-size:12px;font-weight:900;color:var(--green);font-family:'Barlow Condensed',sans-serif">AMISTOSO</p><p style="font-size:10px;color:var(--dim)">Gestionar partido</p></div>
         </div>
         <div onclick="if(confirm('⚠️ Esto recalcula SOLO desde partidos cargados en Supabase. ¿Continuar?'))window.recalcularRanking('${CURRENT_TORNEO?.id||'t1'}')" style="background:var(--card);border:1px solid var(--red)30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px;grid-column:1/-1">
           <span style="font-size:20px">🔄</span><div><p style="font-size:12px;font-weight:900;color:var(--red);font-family:'Barlow Condensed',sans-serif">RECALCULAR RANKING</p><p style="font-size:10px;color:var(--dim)">Recalcular desde partidos</p></div>
