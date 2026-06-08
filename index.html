@@ -1196,6 +1196,34 @@ function logout() { ME=null; sessionStorage.removeItem('emb_me'); }
 // ═══════ DB HELPERS ═══════
 const SEED_KEY = 'emb_seeded_sb_v2';
 
+// ── Multi-tenant: current liga ───────────────────────────────────
+let CURRENT_LIGA = null; // {id, nombre, deporte, color, plan, estado}
+
+// Get current liga_id — fallback to 'liga_emabol' for backwards compat
+function getLigaId() {
+  return CURRENT_LIGA?.id || ME?.liga_id || 'liga_emabol';
+}
+
+// Filter query param for current liga
+function ligaFilter() {
+  return 'liga_id=eq.' + getLigaId();
+}
+
+// Load liga for current user
+async function loadLiga() {
+  if(!ME) return null;
+  const ligaId = ME.liga_id || 'liga_emabol';
+  try {
+    const rows = await _req('GET', '/ligas?id=eq.' + ligaId + '&limit=1');
+    CURRENT_LIGA = rows?.[0] || null;
+    return CURRENT_LIGA;
+  } catch(e) {
+    CURRENT_LIGA = {id: ligaId, nombre: 'Emabol', deporte: 'futbol', color: 'var(--red)', plan: 'pro'};
+    return CURRENT_LIGA;
+  }
+}
+
+// Get color for torneo display
 async function seedData() {
   // ── One-time structural clear (partidos+ranking) — only if never done in DB ──
   // We use a config flag in Supabase itself, not localStorage, so it's global
@@ -4729,34 +4757,6 @@ window.afterSQL = async function() {
 // Currently active tournament for this session
 let CURRENT_TORNEO = null;
 
-// ── Multi-tenant: current liga ───────────────────────────────────
-let CURRENT_LIGA = null; // {id, nombre, deporte, color, plan, estado}
-
-// Get current liga_id — fallback to 'liga_emabol' for backwards compat
-function getLigaId() {
-  return CURRENT_LIGA?.id || ME?.liga_id || 'liga_emabol';
-}
-
-// Filter query param for current liga
-function ligaFilter() {
-  return 'liga_id=eq.' + getLigaId();
-}
-
-// Load liga for current user
-async function loadLiga() {
-  if(!ME) return null;
-  const ligaId = ME.liga_id || 'liga_emabol';
-  try {
-    const rows = await _req('GET', '/ligas?id=eq.' + ligaId + '&limit=1');
-    CURRENT_LIGA = rows?.[0] || null;
-    return CURRENT_LIGA;
-  } catch(e) {
-    CURRENT_LIGA = {id: ligaId, nombre: 'Emabol', deporte: 'futbol', color: 'var(--red)', plan: 'pro'};
-    return CURRENT_LIGA;
-  }
-}
-
-// Get color for torneo display
 function torneoColor(t) { return t.color || 'var(--gold)'; }
 
 // ── Screen: Tournament selector ───────────────────────────────────────────────
