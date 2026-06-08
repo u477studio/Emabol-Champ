@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0061)file:///C:/Users/emanuel.rufino/Downloads/emabol-champ_7.html -->
+<!-- saved from url=(0061)file:///C:/Users/emanuel.rufino/Downloads/emabol-champ_8.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -863,7 +863,7 @@ td{padding:10px 4px;border-top:1px solid rgba(255,255,255,0.04)}
 }
 
 </style>
-<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/96dea6b9-fc2f-49c2-a7db-7abbdd52d6b6"></head>
+<link rel="manifest" href="blob:null/18ea64e2-2370-426b-b73d-05430ebdabda"><link rel="manifest" href="blob:https://u477studio.github.io/3e4e5856-1b8f-46a7-9473-6093c3ca9ab8"><link rel="manifest" href="blob:null/c5f5d771-04bc-4efb-9ffb-3e255b62ac97"></head>
 <body>
 
   <div style="font-size:12px;color:var(--dim);letter-spacing:3px">LA LIGA · CUNA DE TITANES</div>
@@ -2148,7 +2148,7 @@ async function sAmistoso() {
     let htmlNoConv = '<div class="screen up" style="padding:44px 20px;text-align:center">'
       + '<p style="font-size:40px;margin-bottom:16px">&#128197;</p>'
       + '<p style="color:var(--dim);font-family:Barlow Condensed,sans-serif;font-size:16px;letter-spacing:2px">SIN AMISTOSO PROGRAMADO</p>'
-      + '<button onclick="go(\"/premiacion\")" class="btn btn-out" style="margin-top:24px;max-width:200px">&#8592; VOLVER</button>';
+      + '<button onclick="window._goPremiacion()" class="btn btn-out" style="margin-top:24px;max-width:200px">&#8592; VOLVER</button>';
     if(ME?.admin) {
       htmlNoConv += '<button id="btn-nuevo-amistoso" style="width:100%;margin-top:12px;padding:14px;border-radius:12px;font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;border:none;background:rgba(0,230,118,0.1);border:1px solid var(--green);color:var(--green)">+ CREAR AMISTOSO</button>';
     }
@@ -2180,7 +2180,7 @@ async function sAmistoso() {
   const btnStyle  = 'width:100%;padding:14px;border-radius:12px;font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;border:none;';
 
   let html = '<div class="screen up" style="padding:44px 20px 100px">'
-    + '<button onclick="go(\"/premiacion\")" class="bk" style="margin-bottom:16px">&#8592; VOLVER</button>'
+    + '<button onclick="window._goPremiacion()" class="bk" style="margin-bottom:16px">&#8592; VOLVER</button>'
     + '<h2 style="font-family:Bebas Neue,sans-serif;font-size:32px;letter-spacing:4px;margin-bottom:4px">AMISTOSO</h2>'
     + '<p style="font-size:12px;color:var(--dim);margin-bottom:20px">'+conv.fecha+(conv.hora?' &middot; '+conv.hora:'')+' &middot; No acumula estad&#237;sticas</p>'
     + '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:14px;padding:16px;margin-bottom:16px">'
@@ -2212,6 +2212,8 @@ async function sAmistoso() {
   if(btnN) btnN.onclick = function(){ window.crearNuevoAmistoso(); };
 }
 
+window._goAmistoso = function(){ go('/amistoso'); };
+window._goPremiacion = function(){ go('/premiacion'); };
 window.crearNuevoAmistoso = async function() {
   const fecha = prompt('Fecha del amistoso (DD/MM/AAAA):');
   if(!fecha || !fecha.match(/\d{2}\/\d{2}\/\d{4}/)) {
