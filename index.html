@@ -2338,6 +2338,7 @@ async function sAmistoso() {
   }
 
   if(ME?.admin) {
+    html += '<button id="btn-convocar" style="'+btnStyle+'margin-top:8px;background:linear-gradient(135deg,#00e676,#00b248);color:#000">&#128101; CONVOCAR JUGADORES</button>';
     html += '<button id="btn-armar" style="'+btnStyle+'margin-top:8px;background:linear-gradient(135deg,#4f8ef7,#7b5cf7);color:#fff">&#9917; ARMAR EQUIPOS</button>';
     html += '<button id="btn-gestionar" style="'+btnStyle+'margin-top:8px;background:var(--surf);border:1px solid var(--bdr2);color:var(--muted)">&#9881; CAMBIAR FECHA</button>';
     html += '<button id="btn-cancelar-amistoso" style="'+btnStyle+'margin-top:8px;background:rgba(255,59,92,0.1);border:1px solid var(--red);color:var(--red)">&#10005; CANCELAR AMISTOSO</button>';
@@ -2351,6 +2352,8 @@ async function sAmistoso() {
   if(btnA) btnA.onclick = function(){ window.toggleConvAmistoso(isAnotado?'desconvocar':'convocar'); };
   const btnG = document.getElementById('btn-gestionar');
   if(btnG) btnG.onclick = function(){ go('/convocatoria',{tid:'amistoso',fecha:conv.fecha}); };
+  const btnConv = document.getElementById('btn-convocar');
+  if(btnConv) btnConv.onclick = function(){ window.sConvocarAmistoso(conv); };
   const btnAr = document.getElementById('btn-armar');
   if(btnAr) btnAr.onclick = function(){ go('/armar-amistoso'); };
   const btnN = document.getElementById('btn-nuevo-amistoso');
@@ -2366,6 +2369,79 @@ async function sAmistoso() {
 
 window._goAmistoso = function(){ go('/amistoso'); };
 window._goPremiacion = function(){ go('/premiacion'); };
+window.sConvocarAmistoso = async function(conv) {
+  if(!ME?.admin) return;
+  const allJs = await getJugadores(false).catch(()=>[]);
+  const jMap = {}; allJs.forEach(function(j){ jMap[j.id]=j; });
+  const convocados = new Set((conv.convocados_estado||[]).filter(function(x){ return x.estado==='convocado'; }).map(function(x){ return x.jid; }));
+
+  // Build player list with checkboxes
+  const rows = allJs.map(function(j){
+    const checked = convocados.has(j.id);
+    const foto = j.foto
+      ? '<img src="'+j.foto+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:top;flex-shrink:0">'
+      : '<div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">&#128100;</div>';
+    return '<div data-jid="'+j.id+'" data-action="toggle" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bdr);cursor:pointer;'+(checked?'background:rgba(0,230,118,0.08)':'')+'" class="conv-row'+(checked?' sel':'')+'">'+
+      '<div style="width:20px;height:20px;border-radius:6px;border:2px solid '+(checked?'var(--green)':'var(--bdr2)')+';background:'+(checked?'var(--green)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s" class="conv-check">'+
+      (checked?'<span style="font-size:11px;color:#000;font-weight:900">&#10003;</span>':'')+
+      '</div>'+
+      foto+
+      '<span style="font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:14px;flex:1">'+j.nombre+'</span>'+
+    '</div>';
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(8px)';
+  overlay.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--bdr2);border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:85dvh;display:flex;flex-direction:column;position:relative">'
+    +'<div style="padding:16px 16px 12px;border-bottom:1px solid var(--bdr2)">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<p style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:3px;color:var(--white)">CONVOCAR JUGADORES</p>'
+        +'<button id="conv-close" style="width:30px;height:30px;border-radius:50%;background:var(--surf2);border:1px solid var(--bdr2);color:var(--muted);font-size:14px;cursor:pointer">&#x2715;</button>'
+      +'</div>'
+      +'<p style="font-size:11px;color:var(--dim);margin-top:4px">Tocá un jugador para marcar/desmarcar</p>'
+    +'</div>'
+    +'<div id="conv-list" style="overflow-y:auto;flex:1">'+rows+'</div>'
+    +'<div style="padding:12px 16px 32px">'
+      +'<button id="conv-guardar" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#00e676,#00b248);color:#000;font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer">GUARDAR CONVOCATORIA</button>'
+    +'</div>'
+    +'</div>';
+
+  document.body.appendChild(overlay);
+
+  // Click handler via event delegation
+  overlay.querySelectorAll('.conv-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      row.classList.toggle('sel');
+      const chk = row.querySelector('.conv-check');
+      const sel = row.classList.contains('sel');
+      chk.style.borderColor = sel ? 'var(--green)' : 'var(--bdr2)';
+      chk.style.background  = sel ? 'var(--green)' : 'transparent';
+      chk.innerHTML = sel ? '<span style="font-size:11px;color:#000;font-weight:900">&#10003;</span>' : '';
+      row.style.background  = sel ? 'rgba(0,230,118,0.08)' : '';
+    });
+  });
+
+  document.getElementById('conv-close').onclick = function(){ overlay.remove(); };
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+
+  document.getElementById('conv-guardar').onclick = async function() {
+    const selJids = [...overlay.querySelectorAll('.conv-row.sel')].map(function(r){ return r.dataset.jid; });
+    // Keep self-registered players, add/remove admin-convoked
+    const existing = (conv.convocados_estado||[]).filter(function(x){ return x.estado==='convocado' && !ME?.admin; });
+    const nuevo = selJids.map(function(jid){ return {jid, estado:'convocado'}; });
+    // Merge: self-registered + admin selection (deduplicated)
+    const merged = [...nuevo];
+    existing.forEach(function(x){ if(!merged.find(function(m){ return m.jid===x.jid; })) merged.push(x); });
+    try {
+      await _req('PATCH','/convocatorias?id=eq.'+conv.id,{convocados_estado: merged});
+      invalidateCache('convocatorias');
+      overlay.remove();
+      sAmistoso();
+    } catch(e){ alert('Error: '+_errMsg(e)); }
+  };
+};
+
 window.crearNuevoAmistoso = async function() {
   const fecha = prompt('Fecha del amistoso (DD/MM/AAAA):');
   if(!fecha || !fecha.match(/\d{2}\/\d{2}\/\d{4}/)) {
