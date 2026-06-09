@@ -2161,7 +2161,6 @@ async function sArmarEquiposAmistoso() {
         +'</div>';
     }).join('');
   }
-  }
 
   function renderDisp() {
     const d = window._amistoso_disp;
@@ -2203,6 +2202,7 @@ async function sArmarEquiposAmistoso() {
     setContent(html);
   };
   window._amistoso_render();
+}
 
 window._amistoso_add = function(jid, side) {
   window._amistoso_disp = window._amistoso_disp.filter(function(j){ return j!==jid; });
