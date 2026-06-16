@@ -2159,7 +2159,7 @@ async function sArmarEquiposAmistoso() {
     getJugadores(false).catch(()=>[]),
     getAll('convocatorias').catch(()=>[])
   ]);
-  const conv = convs.find(function(cv){ return cv.tid==='amistoso' && cv.estado==='en_proceso'; });
+  const conv = convs.find(function(cv){ return cv.tid==='amistoso' && (cv.estado==='en_proceso'||cv.estado==='confirmado'); });
   if(!conv){ go('/amistoso'); return; }
 
   const jMap = {}; allJs.forEach(function(j){ jMap[j.id]=j; });
@@ -2278,7 +2278,7 @@ async function sAmistoso() {
   invalidateCache('convocatorias');
   const allJs = await getJugadores(false).catch(()=>[]);
   const convs  = await getAll('convocatorias').catch(()=>[]);
-  const conv   = convs.find(function(cv){ return cv.tid==='amistoso' && cv.estado==='en_proceso'; }) || null;
+  const conv   = convs.find(function(cv){ return cv.tid==='amistoso' && (cv.estado==='en_proceso'||cv.estado==='confirmado'); }) || null;
   if(!conv){
     let htmlNoConv = '<div class="screen up" style="padding:44px 20px;text-align:center">'
       + '<p style="font-size:40px;margin-bottom:16px">&#128197;</p>'
@@ -2468,7 +2468,7 @@ window.crearNuevoAmistoso = async function() {
   try {
     // Marcar convocatoria anterior como finalizada
     const convs = await getAll('convocatorias').catch(()=>[]);
-    const anterior = convs.find(function(cv){ return cv.tid==='amistoso' && cv.estado==='en_proceso'; });
+    const anterior = convs.find(function(cv){ return cv.tid==='amistoso' && (cv.estado==='en_proceso'||cv.estado==='confirmado'); });
     if(anterior) {
       await _req('PATCH','/convocatorias?id=eq.'+anterior.id,{estado:'finalizado'});
     }
