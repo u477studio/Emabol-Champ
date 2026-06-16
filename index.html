@@ -1407,7 +1407,8 @@ let R='/login',RP={};
 
 function setContent(html){document.getElementById('app').innerHTML=html+renderNav();}
 function renderNav(){
-  if(!ME||R==='/login'||R==='/setup'||R==='/premiacion'||R==='/amistoso')return'';
+  if(!ME||R==='/login'||R==='/setup')return'';
+  if((R==='/premiacion'||R==='/amistoso')&&!ME?.admin)return'';
   const items=[
     {i:'🏠',l:tr('home'),p:'/home'},
     ...(ME&&ME.admin?[{i:'👥',l:tr('players'),p:'/players'}]:[]),
@@ -2129,6 +2130,22 @@ function sPremiacion() {
   btn.onclick = function() { go('/amistoso'); };
   btnWrap.appendChild(btn);
   wrap.appendChild(btnWrap);
+  // Admin top bar
+  if(ME?.admin) {
+    const adminBar = document.createElement('div');
+    adminBar.style.cssText = 'position:absolute;top:0;left:0;right:0;z-index:20;display:flex;gap:8px;padding:10px 12px;background:rgba(0,0,0,0.6)';
+    const mkBtn = function(txt, path) {
+      const b = document.createElement('button');
+      b.textContent = txt;
+      b.style.cssText = 'padding:6px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:1.5px;cursor:pointer';
+      b.onclick = function(){ go(path); };
+      return b;
+    };
+    adminBar.appendChild(mkBtn('👥 JUGADORES', '/players'));
+    adminBar.appendChild(mkBtn('⚙️ LIGA', '/gestion-liga'));
+    adminBar.appendChild(mkBtn('🆕 TORNEO', '/torneo-new'));
+    wrap.appendChild(adminBar);
+  }
   app.appendChild(wrap);
 }
 
@@ -2909,6 +2926,9 @@ async function sHome(){
         </div>
         <div onclick="go('/amistoso')" style="background:var(--card);border:1px solid rgba(0,230,118,0.2);border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px">⚽</span><div><p style="font-size:12px;font-weight:900;color:var(--green);font-family:'Barlow Condensed',sans-serif">AMISTOSO</p><p style="font-size:10px;color:var(--dim)">Gestionar partido</p></div>
+        </div>
+        <div onclick="go(\'/players\')" style="background:var(--card);border:1px solid var(--bdr2);border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">&#128101;</span><div><p style="font-size:12px;font-weight:900;color:var(--muted);font-family:\'Barlow Condensed\',sans-serif">JUGADORES</p><p style="font-size:10px;color:var(--dim)">Gestionar liga</p></div>
         </div>
         <div onclick="if(confirm('⚠️ Esto recalcula SOLO desde partidos cargados en Supabase. ¿Continuar?'))window.recalcularRanking('${CURRENT_TORNEO?.id||'t1'}')" style="background:var(--card);border:1px solid var(--red)30;border-radius:12px;padding:12px 10px;cursor:pointer;display:flex;align-items:center;gap:10px;grid-column:1/-1">
           <span style="font-size:20px">🔄</span><div><p style="font-size:12px;font-weight:900;color:var(--red);font-family:'Barlow Condensed',sans-serif">RECALCULAR RANKING</p><p style="font-size:10px;color:var(--dim)">Recalcular desde partidos</p></div>
