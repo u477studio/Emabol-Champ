@@ -70,10 +70,13 @@
       <button class="boton boton-baja" id="btnBaja" style="display:none;">Darme de baja</button>
   </div>
 
-    <div class="tarjeta">
-      <h2>Jugadores anotados (<span id="cantidad">0</span>)</h2>
-      <ul class="lista" id="listaInscriptos"></ul>
-    </div>
+   <div class="tarjeta">
+  <h2>Titulares (<span id="cantidadTitulares">0</span>)</h2>
+  <ul class="lista" id="listaTitulares"></ul>
+
+  <h2>Suplentes (<span id="cantidadSuplentes">0</span>)</h2>
+  <ul class="lista" id="listaSuplentes"></ul>
+</div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -121,20 +124,52 @@ const firebaseConfig = {
       actualizarBoton();
     });
 
-    inscriptosRef.orderBy('timestamp').onSnapshot((snapshot) => {
-      const lista = document.getElementById('listaInscriptos');
-      lista.innerHTML = '';
-      let cantidad = 0;
+    inscriptosRef.onSnapshot((snapshot) => {
+  // Recolectamos todos los jugadores activos
+  const activos = [];
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.estado === 'activo') {
+      activos.push({ id: doc.id, ...data });
+    }
+  });
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.estado === 'activo') {
-          cantidad++;
-          const li = document.createElement('li');
-          li.innerHTML = `<span>${data.nombre}</span>${data.telefono ? `<small>${data.telefono}</small>` : ''}`;
-          lista.appendChild(li);
-        }
-      });
+  // Ordenamos por timestamp (los que no tienen timestamp van al final)
+  activos.sort((a, b) => {
+    const ta = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Number.MAX_SAFE_INTEGER;
+    const tb = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : b.timestamp) : Number.MAX_SAFE_INTEGER;
+    return ta - tb;
+  });
+
+  const cupo = partidoActual?.cupo || 18;
+  const titulares = activos.slice(0, cupo);
+  const suplentes = activos.slice(cupo);
+
+  const listaTitulares = document.getElementById('listaTitulares');
+  const listaSuplentes = document.getElementById('listaSuplentes');
+  listaTitulares.innerHTML = '';
+  listaSuplentes.innerHTML = '';
+
+  titulares.forEach((jugador) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${jugador.nombre}</span>${jugador.telefono ? `<small>${jugador.telefono}</small>` : ''}`;
+    listaTitulares.appendChild(li);
+  });
+
+  suplentes.forEach((jugador) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${jugador.nombre}</span>${jugador.telefono ? `<small>${jugador.telefono}</small>` : ''} <em>(suplente)</em>`;
+    listaSuplentes.appendChild(li);
+  });
+
+  document.getElementById('cantidadTitulares').textContent = titulares.length;
+  document.getElementById('cantidadSuplentes').textContent = suplentes.length;
+
+  const total = titulares.length + suplentes.length;
+  document.getElementById('cupo').textContent = `Cupo: ${titulares.length}/${cupo} (${total} anotados)`;
+
+  actualizarBoton();
+});
 
       document.getElementById('cantidad').textContent = cantidad;
       const cupo = partidoActual?.cupo || 18;
