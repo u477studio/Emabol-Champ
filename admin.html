@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Emabol Champ</title>
+  <style>
+    :root {
+      --verde: #2e7d32;
+      --rojo: #c62828;
+      --azul: #1565c0;
+      --gris: #f5f5f5;
+    }
+    * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+    body { margin: 0; background: var(--gris); }
+    .contenedor { max-width: 600px; margin: 0 auto; padding: 16px; }
+    .tarjeta {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 0 0 12px; }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .boton {
+      display: inline-block;
+      padding: 10px 16px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 4px 2px;
+    }
+    .boton-verde { background: var(--verde); color: white; }
+    .boton-rojo { background: var(--rojo); color: white; }
+    .boton-azul { background: var(--azul); color: white; }
+    .boton-gris { background: #666; color: white; }
+    .oculto { display: none; }
+    .lista-inscriptos { list-style: none; padding: 0; }
+    .lista-inscriptos li {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .estado-activo { color: var(--verde); font-weight: bold; }
+    .estado-baja { color: var(--rojo); font-weight: bold; }
+    .error { color: var(--rojo); margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <!-- Login -->
+    <div id="login" class="tarjeta">
+      <h1>🔐 Admin Emabol</h1>
+      <div id="loginError" class="error oculto"></div>
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Contraseña">
+      <button class="boton boton-verde" id="btnLogin">Entrar</button>
+    </div>
+
+    <!-- Panel admin (oculto hasta loguearse) -->
+    <div id="panelAdmin" class="oculto">
+      <div class="tarjeta">
+        <h1>⚽ Admin Emabol</h1>
+        <button class="boton boton-gris" id="btnLogout">Cerrar sesión</button>
+      </div>
+
+      <!-- Editar partido -->
+      <div class="tarjeta">
+        <h2>Próximo partido</h2>
+        <label>Fecha</label>
+        <input type="text" id="fecha">
+        <label>Hora</label>
+        <input type="text" id="hora">
+        <label>Lugar</label>
+        <input type="text" id="lugar">
+        <label>Costo por jugador</label>
+        <input type="number" id="costo">
+        <label>Cupo</label>
+        <input type="number" id="cupo">
+        <label>Estado</label>
+        <select id="estado">
+          <option value="abierto">Abierto</option>
+          <option value="cerrado">Cerrado</option>
+        </select>
+        <button class="boton boton-azul" id="btnGuardarPartido">Guardar cambios</button>
+      </div>
+
+      <!-- Agregar jugador manual -->
+      <div class="tarjeta">
+        <h2>Agregar jugador</h2>
+        <input type="text" id="nuevoNombre" placeholder="Nombre">
+        <input type="tel" id="nuevoTelefono" placeholder="Teléfono (opcional)">
+        <button class="boton boton-verde" id="btnAgregarJugador">Agregar</button>
+      </div>
+
+      <!-- Lista de inscriptos -->
+      <div class="tarjeta">
+        <h2>Jugadores anotados</h2>
+        <ul class="lista-inscriptos" id="listaInscriptosAdmin"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // ⚠️ PEGÁ ACA TU CONFIGURACIÓN DE FIREBASE (la misma del index.html)
+   const firebaseConfig = {
+  apiKey: "AIzaSyDs7dUZPdqYvjI7AjYx0RoDoS3X1auaN3A",
+  authDomain: "emabol-stars.firebaseapp.com",
+  projectId: "emabol-stars",
+  storageBucket: "emabol-stars.firebasestorage.app",
+  messagingSenderId: "908515702679",
+  appId: "1:908515702679:web:583944869a7dd163d276d2"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const PARTIDO_ID = "proximo-partido";
+    const partidoRef = db.collection('partidos').doc(PARTIDO_ID);
+    const inscriptosRef = partidoRef.collection('inscriptos');
+
+    // Manejo de sesión
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        mostrarPanel();
+        cargarDatos();
+      } else {
+        mostrarLogin();
+      }
+    });
+
+    function mostrarLogin() {
+      document.getElementById('login').classList.remove('oculto');
+      document.getElementById('panelAdmin').classList.add('oculto');
+    }
+
+    function mostrarPanel() {
+      document.getElementById('login').classList.add('oculto');
+      document.getElementById('panelAdmin').classList.remove('oculto');
+    }
+
+    // Login
+    document.getElementById('btnLogin').addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('loginError');
+      errorDiv.classList.add('oculto');
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (error) {
+        errorDiv.textContent = 'Error: ' + error.message;
+        errorDiv.classList.remove('oculto');
+      }
+    });
+
+    // Logout
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+      await auth.signOut();
+    });
+
+    // Cargar datos del partido y suscripciones
+    function cargarDatos() {
+      // Datos del partido
+      partidoRef.onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          document.getElementById('fecha').value = data.fecha || '';
+          document.getElementById('hora').value = data.hora || '';
+          document.getElementById('lugar').value = data.lugar || '';
+          document.getElementById('costo').value = data.costo || 0;
+          document.getElementById('cupo').value = data.cupo || 18;
+          document.getElementById('estado').value = data.estado || 'abierto';
+        }
+      });
+
+      // Lista de inscriptos
+      inscriptosRef.orderBy('timestamp').onSnapshot((snapshot) => {
+        const lista = document.getElementById('listaInscriptosAdmin');
+        lista.innerHTML = '';
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const li = document.createElement('li');
+          const estadoClase = data.estado === 'activo' ? 'estado-activo' : 'estado-baja';
+          li.innerHTML = `
+            <div>
+              <strong>${data.nombre}</strong>
+              ${data.telefono ? `<br><small>${data.telefono}</small>` : ''}
+              <br><span class="${estadoClase}">${data.estado}</span>
+            </div>
+            <div>
+              ${data.estado === 'activo' 
+                ? `<button class="boton boton-rojo" onclick="cambiarEstado('${doc.id}', 'baja')">Dar de baja</button>` 
+                : `<button class="boton boton-verde" onclick="cambiarEstado('${doc.id}', 'activo')">Reactivar</button>`}
+              <button class="boton boton-gris" onclick="eliminarJugador('${doc.id}')">Eliminar</button>
+            </div>
+          `;
+          lista.appendChild(li);
+        });
+      });
+    }
+
+    // Guardar cambios del partido
+    document.getElementById('btnGuardarPartido').addEventListener('click', async () => {
+      const fecha = document.getElementById('fecha').value.trim();
+      const hora = document.getElementById('hora').value.trim();
+      const lugar = document.getElementById('lugar').value.trim();
+      const costo = Number(document.getElementById('costo').value);
+      const cupo = Number(document.getElementById('cupo').value);
+      const estado = document.getElementById('estado').value;
+
+      if (!fecha || !hora || !lugar) {
+        alert('Completá fecha, hora y lugar');
+        return;
+      }
+
+      await partidoRef.update({ fecha, hora, lugar, costo, cupo, estado });
+      alert('Partido actualizado');
+    });
+
+    // Agregar jugador manual
+    document.getElementById('btnAgregarJugador').addEventListener('click', async () => {
+      const nombre = document.getElementById('nuevoNombre').value.trim();
+      const telefono = document.getElementById('nuevoTelefono').value.trim();
+
+      if (!nombre) {
+        alert('Poné un nombre');
+        return;
+      }
+
+      // ID aleatorio para el nuevo jugador
+      const nuevoId = 'manual-' + Date.now();
+      await inscriptosRef.doc(nuevoId).set({
+        nombre,
+        telefono,
+        estado: 'activo',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      document.getElementById('nuevoNombre').value = '';
+      document.getElementById('nuevoTelefono').value = '';
+    });
+
+    // Cambiar estado (activo/baja)
+    window.cambiarEstado = async (id, nuevoEstado) => {
+      await inscriptosRef.doc(id).update({ estado: nuevoEstado });
+    };
+
+    // Eliminar jugador
+    window.eliminarJugador = async (id) => {
+      if (!confirm('¿Seguro que querés eliminar este jugador?')) return;
+      await inscriptosRef.doc(id).delete();
+    };
+  </script>
+</body>
+</html>
