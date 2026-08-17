@@ -61,13 +61,14 @@
       <p class="cupo" id="cupo"></p>
     </div>
 
-    <div class="tarjeta">
+   <div class="tarjeta">
       <h2>Anotarme</h2>
       <input type="text" id="nombre" placeholder="Tu nombre o apodo">
       <input type="tel" id="telefono" placeholder="Teléfono (opcional)">
+      <p id="mensajeEstado" style="display:none; color:#c62828; font-weight:bold; margin:8px 0;"></p>
       <button class="boton boton-anotar" id="btnAnotar" disabled>Anotarme</button>
       <button class="boton boton-baja" id="btnBaja" style="display:none;">Darme de baja</button>
-    </div>
+  </div>
 
     <div class="tarjeta">
       <h2>Jugadores anotados (<span id="cantidad">0</span>)</h2>
@@ -115,6 +116,7 @@ const firebaseConfig = {
         <div class="fecha">📅 ${partidoActual.fecha} - ${partidoActual.hora}</div>
         <p>📍 ${partidoActual.lugar}</p>
         <p>💰 $${partidoActual.costo || 0} por jugador</p>
+        <p>Estado: <strong>${partidoActual.estado === 'cerrado' ? '🔒 Cerrado' : '🟢 Abierto'}</strong></p>
       `;
       actualizarBoton();
     });
@@ -141,26 +143,57 @@ const firebaseConfig = {
     });
 
     function actualizarBoton() {
-      const btnAnotar = document.getElementById('btnAnotar');
-      const btnBaja = document.getElementById('btnBaja');
+  const btnAnotar = document.getElementById('btnAnotar');
+  const btnBaja = document.getElementById('btnBaja');
+  const mensajeEstado = document.getElementById('mensajeEstado');
+  const inputNombre = document.getElementById('nombre');
+  const inputTelefono = document.getElementById('telefono');
 
-      if (!partidoActual) {
-        btnAnotar.disabled = true;
-        return;
+  if (!partidoActual) {
+    btnAnotar.disabled = true;
+    mensajeEstado.style.display = 'none';
+    return;
+  }
+
+  // Primero verificamos el estado del partido
+  if (partidoActual.estado === 'cerrado') {
+    // Si está cerrado, deshabilitamos la inscripción
+    mensajeEstado.textContent = '❌ Inscripción cerrada';
+    mensajeEstado.style.display = 'block';
+    btnAnotar.disabled = true;
+    btnAnotar.textContent = 'Inscripción cerrada';
+    inputNombre.disabled = true;
+    inputTelefono.disabled = true;
+    // Si el usuario ya está anotado, permitimos darse de baja
+    inscriptosRef.doc(usuarioId).get().then((doc) => {
+      if (doc.exists && doc.data().estado === 'activo') {
+        btnBaja.style.display = 'block';
+        btnBaja.textContent = 'Darme de baja';
+      } else {
+        btnBaja.style.display = 'none';
       }
+    });
+    return;
+  }
 
-      inscriptosRef.doc(usuarioId).get().then((doc) => {
-        if (doc.exists && doc.data().estado === 'activo') {
-          btnAnotar.style.display = 'none';
-          btnBaja.style.display = 'block';
-          btnBaja.textContent = 'Darme de baja';
-        } else {
-          btnAnotar.style.display = 'block';
-          btnBaja.style.display = 'none';
-          btnAnotar.disabled = false;
-        }
-      });
+  // Si está abierto, habilitamos todo
+  mensajeEstado.style.display = 'none';
+  inputNombre.disabled = false;
+  inputTelefono.disabled = false;
+  btnAnotar.textContent = 'Anotarme';
+
+  inscriptosRef.doc(usuarioId).get().then((doc) => {
+    if (doc.exists && doc.data().estado === 'activo') {
+      btnAnotar.style.display = 'none';
+      btnBaja.style.display = 'block';
+      btnBaja.textContent = 'Darme de baja';
+    } else {
+      btnAnotar.style.display = 'block';
+      btnBaja.style.display = 'none';
+      btnAnotar.disabled = false;
     }
+  });
+}
 
     document.getElementById('btnAnotar').addEventListener('click', async () => {
       const nombre = document.getElementById('nombre').value.trim();
