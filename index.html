@@ -21,6 +21,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,.1);
     }
     h1 { font-size: 24px; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 0 0 12px; }
     .fecha { color: #666; }
     .boton {
       display: block;
@@ -34,7 +35,7 @@
     }
     .boton-anotar { background: var(--verde); color: white; }
     .boton-baja { background: var(--rojo); color: white; }
-    .boton:disabled { background: #ccc; }
+    .boton:disabled { background: #ccc; cursor: not-allowed; }
     input {
       width: 100%;
       padding: 12px;
@@ -43,61 +44,78 @@
       border-radius: 8px;
       font-size: 16px;
     }
+    input:disabled {
+      background: #eee;
+      color: #888;
+    }
     .lista { list-style: none; padding: 0; }
     .lista li {
       padding: 10px 0;
       border-bottom: 1px solid #eee;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
     }
     .cupo { font-size: 14px; color: #555; }
+    .mensaje-estado {
+      display: none;
+      color: var(--rojo);
+      font-weight: bold;
+      margin: 8px 0;
+    }
   </style>
 </head>
 <body>
   <div class="contenedor">
+    <!-- Info del partido -->
     <div class="tarjeta">
       <h1>⚽ Próximo partido</h1>
       <div id="infoPartido">Cargando...</div>
       <p class="cupo" id="cupo"></p>
     </div>
 
-   <div class="tarjeta">
+    <!-- Formulario de inscripción -->
+    <div class="tarjeta">
       <h2>Anotarme</h2>
       <input type="text" id="nombre" placeholder="Tu nombre o apodo">
       <input type="tel" id="telefono" placeholder="Teléfono (opcional)">
-      <p id="mensajeEstado" style="display:none; color:#c62828; font-weight:bold; margin:8px 0;"></p>
+      <p id="mensajeEstado" class="mensaje-estado"></p>
       <button class="boton boton-anotar" id="btnAnotar" disabled>Anotarme</button>
       <button class="boton boton-baja" id="btnBaja" style="display:none;">Darme de baja</button>
+    </div>
+
+    <!-- Listas de titulares y suplentes -->
+    <div class="tarjeta">
+      <h2>Titulares (<span id="cantidadTitulares">0</span>)</h2>
+      <ul class="lista" id="listaTitulares"></ul>
+
+      <h2>Suplentes (<span id="cantidadSuplentes">0</span>)</h2>
+      <ul class="lista" id="listaSuplentes"></ul>
+    </div>
   </div>
 
-   <div class="tarjeta">
-  <h2>Titulares (<span id="cantidadTitulares">0</span>)</h2>
-  <ul class="lista" id="listaTitulares"></ul>
-
-  <h2>Suplentes (<span id="cantidadSuplentes">0</span>)</h2>
-  <ul class="lista" id="listaSuplentes"></ul>
-</div>
-  </div>
-
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
     // ⚠️ PEGÁ ACA TU CONFIGURACIÓN DE FIREBASE
-const firebaseConfig = {
-  apiKey: "AIzaSyDs7dUZPdqYvjI7AjYx0RoDoS3X1auaN3A",
-  authDomain: "emabol-stars.firebaseapp.com",
-  projectId: "emabol-stars",
-  storageBucket: "emabol-stars.firebasestorage.app",
-  messagingSenderId: "908515702679",
-  appId: "1:908515702679:web:583944869a7dd163d276d2"
-};
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROJECT.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_PROJECT.appspot.com",
+      messagingSenderId: "TU_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     const PARTIDO_ID = "proximo-partido";
 
+    // ID único del dispositivo (para identificar al jugador)
     function generarId() {
       return Math.random().toString(36).substring(2) + Date.now().toString(36);
     }
@@ -109,127 +127,135 @@ const firebaseConfig = {
 
     let partidoActual = null;
 
+    // ---------- ESCUCHAR CAMBIOS DEL PARTIDO ----------
     partidoRef.onSnapshot((doc) => {
       if (!doc.exists) {
         document.getElementById('infoPartido').textContent = 'No hay partido programado.';
+        document.getElementById('cupo').textContent = '';
         return;
       }
+
       partidoActual = doc.data();
+      const estado = partidoActual.estado || 'abierto';
+      const estadoTexto = estado === 'cerrado' ? '🔒 Cerrado' : '🟢 Abierto';
+
       document.getElementById('infoPartido').innerHTML = `
-        <div class="fecha">📅 ${partidoActual.fecha} - ${partidoActual.hora}</div>
-        <p>📍 ${partidoActual.lugar}</p>
+        <div class="fecha">📅 ${partidoActual.fecha || 'Fecha sin definir'} - ${partidoActual.hora || 'Hora sin definir'}</div>
+        <p>📍 ${partidoActual.lugar || 'Lugar sin definir'}</p>
         <p>💰 $${partidoActual.costo || 0} por jugador</p>
-        <p>Estado: <strong>${partidoActual.estado === 'cerrado' ? '🔒 Cerrado' : '🟢 Abierto'}</strong></p>
+        <p>Estado: <strong>${estadoTexto}</strong></p>
       `;
+
       actualizarBoton();
     });
 
+    // ---------- ESCUCHAR INSCRIPTOS ----------
     inscriptosRef.onSnapshot((snapshot) => {
-  // Recolectamos todos los jugadores activos
-  const activos = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    if (data.estado === 'activo') {
-      activos.push({ id: doc.id, ...data });
-    }
-  });
+      const activos = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.estado === 'activo') {
+          // Normalizamos timestamp para ordenar
+          let ts = data.timestamp;
+          if (ts && typeof ts.toMillis === 'function') {
+            ts = ts.toMillis();
+          } else if (!ts) {
+            ts = Number.MAX_SAFE_INTEGER; // Sin timestamp al final
+          }
+          activos.push({ id: doc.id, nombre: data.nombre, telefono: data.telefono || '', timestamp: ts });
+        }
+      });
 
-  // Ordenamos por timestamp (los que no tienen timestamp van al final)
-  activos.sort((a, b) => {
-    const ta = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Number.MAX_SAFE_INTEGER;
-    const tb = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : b.timestamp) : Number.MAX_SAFE_INTEGER;
-    return ta - tb;
-  });
+      // Ordenar por timestamp ascendente (más antiguo primero)
+      activos.sort((a, b) => a.timestamp - b.timestamp);
 
-  const cupo = partidoActual?.cupo || 18;
-  const titulares = activos.slice(0, cupo);
-  const suplentes = activos.slice(cupo);
-
-  const listaTitulares = document.getElementById('listaTitulares');
-  const listaSuplentes = document.getElementById('listaSuplentes');
-  listaTitulares.innerHTML = '';
-  listaSuplentes.innerHTML = '';
-
-  titulares.forEach((jugador) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span>${jugador.nombre}</span>${jugador.telefono ? `<small>${jugador.telefono}</small>` : ''}`;
-    listaTitulares.appendChild(li);
-  });
-
-  suplentes.forEach((jugador) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span>${jugador.nombre}</span>${jugador.telefono ? `<small>${jugador.telefono}</small>` : ''} <em>(suplente)</em>`;
-    listaSuplentes.appendChild(li);
-  });
-
-  document.getElementById('cantidadTitulares').textContent = titulares.length;
-  document.getElementById('cantidadSuplentes').textContent = suplentes.length;
-
-  const total = titulares.length + suplentes.length;
-  document.getElementById('cupo').textContent = `Cupo: ${titulares.length}/${cupo} (${total} anotados)`;
-
-  actualizarBoton();
-});
-
-      document.getElementById('cantidad').textContent = cantidad;
       const cupo = partidoActual?.cupo || 18;
-      document.getElementById('cupo').textContent = `Cupo: ${cantidad}/${cupo}`;
+      const titulares = activos.slice(0, cupo);
+      const suplentes = activos.slice(cupo);
+
+      const listaTitulares = document.getElementById('listaTitulares');
+      const listaSuplentes = document.getElementById('listaSuplentes');
+      listaTitulares.innerHTML = '';
+      listaSuplentes.innerHTML = '';
+
+      // Llenar titulares
+      titulares.forEach((jugador) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${jugador.nombre}</span>${jugador.telefono ? `<small>${jugador.telefono}</small>` : ''}`;
+        listaTitulares.appendChild(li);
+      });
+
+      // Llenar suplentes
+      suplentes.forEach((jugador) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${jugador.nombre}</span>${jugador.telefono ? `<small>${jugador.telefono}</small>` : ''} <em>(suplente)</em>`;
+        listaSuplentes.appendChild(li);
+      });
+
+      document.getElementById('cantidadTitulares').textContent = titulares.length;
+      document.getElementById('cantidadSuplentes').textContent = suplentes.length;
+
+      const total = activos.length;
+      document.getElementById('cupo').textContent = `Cupo: ${titulares.length}/${cupo} (${total} anotados)`;
+
       actualizarBoton();
     });
 
+    // ---------- ACTUALIZAR BOTONES ----------
     function actualizarBoton() {
-  const btnAnotar = document.getElementById('btnAnotar');
-  const btnBaja = document.getElementById('btnBaja');
-  const mensajeEstado = document.getElementById('mensajeEstado');
-  const inputNombre = document.getElementById('nombre');
-  const inputTelefono = document.getElementById('telefono');
+      const btnAnotar = document.getElementById('btnAnotar');
+      const btnBaja = document.getElementById('btnBaja');
+      const mensajeEstado = document.getElementById('mensajeEstado');
+      const inputNombre = document.getElementById('nombre');
+      const inputTelefono = document.getElementById('telefono');
 
-  if (!partidoActual) {
-    btnAnotar.disabled = true;
-    mensajeEstado.style.display = 'none';
-    return;
-  }
-
-  // Primero verificamos el estado del partido
-  if (partidoActual.estado === 'cerrado') {
-    // Si está cerrado, deshabilitamos la inscripción
-    mensajeEstado.textContent = '❌ Inscripción cerrada';
-    mensajeEstado.style.display = 'block';
-    btnAnotar.disabled = true;
-    btnAnotar.textContent = 'Inscripción cerrada';
-    inputNombre.disabled = true;
-    inputTelefono.disabled = true;
-    // Si el usuario ya está anotado, permitimos darse de baja
-    inscriptosRef.doc(usuarioId).get().then((doc) => {
-      if (doc.exists && doc.data().estado === 'activo') {
-        btnBaja.style.display = 'block';
-        btnBaja.textContent = 'Darme de baja';
-      } else {
-        btnBaja.style.display = 'none';
+      if (!partidoActual) {
+        btnAnotar.disabled = true;
+        mensajeEstado.style.display = 'none';
+        return;
       }
-    });
-    return;
-  }
 
-  // Si está abierto, habilitamos todo
-  mensajeEstado.style.display = 'none';
-  inputNombre.disabled = false;
-  inputTelefono.disabled = false;
-  btnAnotar.textContent = 'Anotarme';
+      // Si el partido está cerrado
+      if (partidoActual.estado === 'cerrado') {
+        mensajeEstado.textContent = '❌ Inscripción cerrada';
+        mensajeEstado.style.display = 'block';
+        btnAnotar.disabled = true;
+        btnAnotar.textContent = 'Inscripción cerrada';
+        inputNombre.disabled = true;
+        inputTelefono.disabled = true;
 
-  inscriptosRef.doc(usuarioId).get().then((doc) => {
-    if (doc.exists && doc.data().estado === 'activo') {
-      btnAnotar.style.display = 'none';
-      btnBaja.style.display = 'block';
-      btnBaja.textContent = 'Darme de baja';
-    } else {
-      btnAnotar.style.display = 'block';
-      btnBaja.style.display = 'none';
-      btnAnotar.disabled = false;
+        // Si ya estaba anotado, permitir darse de baja
+        inscriptosRef.doc(usuarioId).get().then((doc) => {
+          if (doc.exists && doc.data().estado === 'activo') {
+            btnBaja.style.display = 'block';
+            btnBaja.textContent = 'Darme de baja';
+          } else {
+            btnBaja.style.display = 'none';
+          }
+        });
+        return;
+      }
+
+      // Si el partido está abierto
+      mensajeEstado.style.display = 'none';
+      inputNombre.disabled = false;
+      inputTelefono.disabled = false;
+      btnAnotar.textContent = 'Anotarme';
+
+      inscriptosRef.doc(usuarioId).get().then((doc) => {
+        if (doc.exists && doc.data().estado === 'activo') {
+          btnAnotar.style.display = 'none';
+          btnBaja.style.display = 'block';
+          btnBaja.textContent = 'Darme de baja';
+        } else {
+          btnAnotar.style.display = 'block';
+          btnBaja.style.display = 'none';
+          btnAnotar.disabled = false;
+        }
+      });
     }
-  });
-}
 
+    // ---------- ANOTARSE ----------
     document.getElementById('btnAnotar').addEventListener('click', async () => {
       const nombre = document.getElementById('nombre').value.trim();
       if (!nombre) {
@@ -250,6 +276,7 @@ const firebaseConfig = {
       document.getElementById('telefono').value = '';
     });
 
+    // ---------- DARSE DE BAJA ----------
     document.getElementById('btnBaja').addEventListener('click', async () => {
       if (!confirm('¿Seguro que te das de baja?')) return;
       await inscriptosRef.doc(usuarioId).update({ estado: 'baja' });
