@@ -23,6 +23,7 @@
     }
     h1 { font-size: 24px; margin: 0 0 8px; }
     h2 { font-size: 18px; margin: 0 0 12px; }
+    h3 { margin: 8px 0; }
     input, select {
       width: 100%;
       padding: 10px;
@@ -58,6 +59,18 @@
     .estado-activo { color: var(--verde); font-weight: bold; }
     .estado-baja { color: var(--rojo); font-weight: bold; }
     .error { color: var(--rojo); margin: 8px 0; }
+    .exito { color: var(--verde); margin: 8px 0; }
+    .equipo {
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 8px 0;
+    }
+    .equipo ul { list-style: none; padding: 0; }
+    .equipo li {
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+    }
   </style>
 </head>
 <body>
@@ -81,6 +94,7 @@
       <!-- Editar partido -->
       <div class="tarjeta">
         <h2>Próximo partido</h2>
+        <div id="guardarMensaje" class="oculto"></div>
         <label>Fecha</label>
         <input type="text" id="fecha">
         <label>Hora</label>
@@ -112,6 +126,24 @@
         <h2>Jugadores anotados</h2>
         <ul class="lista-inscriptos" id="listaInscriptosAdmin"></ul>
       </div>
+
+      <!-- Equipos -->
+      <div class="tarjeta" id="equiposCard" style="display:none;">
+        <h2>Equipos</h2>
+        <p id="estadoCupo"></p>
+        <button class="boton boton-azul" id="btnArmarEquipos">Armar equipos aleatoriamente</button>
+        <div id="equiposResultado" style="margin-top:12px;">
+          <div class="equipo">
+            <h3>Equipo A</h3>
+            <ul id="equipoA"></ul>
+          </div>
+          <div class="equipo">
+            <h3>Equipo B</h3>
+            <ul id="equipoB"></ul>
+          </div>
+        </div>
+        <button class="boton boton-verde" id="btnCompartirWhatsApp" style="display:none; margin-top:12px;">Compartir por WhatsApp</button>
+      </div>
     </div>
   </div>
 
@@ -121,7 +153,7 @@
 
   <script>
     // ⚠️ PEGÁ ACA TU CONFIGURACIÓN DE FIREBASE (la misma del index.html)
-   const firebaseConfig = {
+    const firebaseConfig = {
   apiKey: "AIzaSyDs7dUZPdqYvjI7AjYx0RoDoS3X1auaN3A",
   authDomain: "emabol-stars.firebaseapp.com",
   projectId: "emabol-stars",
@@ -137,6 +169,9 @@
     const PARTIDO_ID = "proximo-partido";
     const partidoRef = db.collection('partidos').doc(PARTIDO_ID);
     const inscriptosRef = partidoRef.collection('inscriptos');
+
+    let partidoActual = null;
+    let titularesActuales = []; // jugadores activos dentro del cupo
 
     // Manejo de sesión
     auth.onAuthStateChanged((user) => {
@@ -182,13 +217,14 @@
       // Datos del partido
       partidoRef.onSnapshot((doc) => {
         if (doc.exists) {
-          const data = doc.data();
-          document.getElementById('fecha').value = data.fecha || '';
-          document.getElementById('hora').value = data.hora || '';
-          document.getElementById('lugar').value = data.lugar || '';
-          document.getElementById('costo').value = data.costo || 0;
-          document.getElementById('cupo').value = data.cupo || 18;
-          document.getElementById('estado').value = data.estado || 'abierto';
+          partidoActual = doc.data();
+          document.getElementById('fecha').value = partidoActual.fecha || '';
+          document.getElementById('hora').value = partidoActual.hora || '';
+          document.getElementById('lugar').value = partidoActual.lugar || '';
+          document.getElementById('costo').value = partidoActual.costo || 0;
+          document.getElementById('cupo').value = partidoActual.cupo || 18;
+          document.getElementById('estado').value = partidoActual.estado || 'abierto';
+          actualizarSeccionEquipos();
         }
       });
 
@@ -196,6 +232,8 @@
       inscriptosRef.orderBy('timestamp').onSnapshot((snapshot) => {
         const lista = document.getElementById('listaInscriptosAdmin');
         lista.innerHTML = '';
+        const activos = [];
+
         snapshot.forEach((doc) => {
           const data = doc.data();
           const li = document.createElement('li');
@@ -214,11 +252,125 @@
             </div>
           `;
           lista.appendChild(li);
+
+          if (data.estado === 'activo') {
+            activos.push({ id: doc.id, nombre: data.nombre, telefono: data.telefono || '', timestamp: data.timestamp });
+          }
         });
+
+        // Ordenar por timestamp
+        activos.sort((a, b) => {
+          const ta = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : a.timestamp) : Number.MAX_SAFE_INTEGER;
+          const tb = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : b.timestamp) : Number.MAX_SAFE_INTEGER;
+          return ta - tb;
+        });
+
+        // Tomar solo los titulares según cupo
+        const cupo = partidoActual?.cupo || 18;
+        titularesActuales = activos.slice(0, cupo);
+        actualizarSeccionEquipos();
       });
     }
 
-    // Guardar cambios del partido
+    // Mostrar u ocultar sección de equipos según cupo
+    function actualizarSeccionEquipos() {
+      const equiposCard = document.getElementById('equiposCard');
+      const estadoCupo = document.getElementById('estadoCupo');
+      const btnArmar = document.getElementById('btnArmarEquipos');
+      const btnCompartir = document.getElementById('btnCompartirWhatsApp');
+
+      if (!partidoActual) {
+        equiposCard.style.display = 'none';
+        return;
+      }
+
+      const cupo = partidoActual.cupo || 18;
+      const cantidadTitulares = titularesActuales.length;
+      const completo = cantidadTitulares >= cupo;
+
+      equiposCard.style.display = 'block';
+      estadoCupo.textContent = `Titulares: ${cantidadTitulares} de ${cupo}. ${completo ? '✅ Cupo completo' : `Faltan ${cupo - cantidadTitulares} para completar.`}`;
+      btnArmar.disabled = !completo;
+      btnArmar.textContent = completo ? 'Armar equipos aleatoriamente' : 'Esperando completar cupo...';
+
+      // Ocultar resultado anterior si no está completo
+      if (!completo) {
+        document.getElementById('equiposResultado').style.display = 'none';
+        btnCompartir.style.display = 'none';
+        document.getElementById('equipoA').innerHTML = '';
+        document.getElementById('equipoB').innerHTML = '';
+      } else {
+        document.getElementById('equiposResultado').style.display = 'block';
+      }
+    }
+
+    // Armar equipos aleatoriamente
+    document.getElementById('btnArmarEquipos').addEventListener('click', () => {
+      if (titularesActuales.length < (partidoActual.cupo || 18)) {
+        alert('Aún no hay cupo completo.');
+        return;
+      }
+
+      // Mezclar aleatoriamente (Fisher-Yates)
+      const mezclados = [...titularesActuales];
+      for (let i = mezclados.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [mezclados[i], mezclados[j]] = [mezclados[j], mezclados[i]];
+      }
+
+      // Dividir en dos equipos
+      const mitad = Math.ceil(mezclados.length / 2);
+      const equipoA = mezclados.slice(0, mitad);
+      const equipoB = mezclados.slice(mitad);
+
+      // Mostrar en las listas
+      const listaA = document.getElementById('equipoA');
+      const listaB = document.getElementById('equipoB');
+      listaA.innerHTML = '';
+      listaB.innerHTML = '';
+
+      equipoA.forEach((jugador) => {
+        const li = document.createElement('li');
+        li.textContent = jugador.nombre;
+        listaA.appendChild(li);
+      });
+
+      equipoB.forEach((jugador) => {
+        const li = document.createElement('li');
+        li.textContent = jugador.nombre;
+        listaB.appendChild(li);
+      });
+
+      // Mostrar botón de compartir
+      document.getElementById('btnCompartirWhatsApp').style.display = 'inline-block';
+    });
+
+    // Compartir por WhatsApp
+    document.getElementById('btnCompartirWhatsApp').addEventListener('click', () => {
+      if (!partidoActual || titularesActuales.length === 0) return;
+
+      const fecha = partidoActual.fecha || '';
+      const hora = partidoActual.hora || '';
+      const lugar = partidoActual.lugar || '';
+
+      // Obtener nombres de los equipos mostrados
+      const equipoA = Array.from(document.querySelectorAll('#equipoA li')).map(li => li.textContent);
+      const equipoB = Array.from(document.querySelectorAll('#equipoB li')).map(li => li.textContent);
+
+      let mensaje = `⚽ *Emabol Champ*\n`;
+      mensaje += `📅 ${fecha} - ${hora}\n`;
+      mensaje += `📍 ${lugar}\n\n`;
+      mensaje += `*Equipo A:*\n`;
+      equipoA.forEach((nombre, i) => mensaje += `${i + 1}. ${nombre}\n`);
+      mensaje += `\n*Equipo B:*\n`;
+      equipoB.forEach((nombre, i) => mensaje += `${i + 1}. ${nombre}\n`);
+      mensaje += `\n¡Nos vemos! 💪`;
+
+      const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+      window.open(url, '_blank');
+    });
+
+    // Guardar cambios del partido (con set y merge)
     document.getElementById('btnGuardarPartido').addEventListener('click', async () => {
       const fecha = document.getElementById('fecha').value.trim();
       const hora = document.getElementById('hora').value.trim();
@@ -226,14 +378,26 @@
       const costo = Number(document.getElementById('costo').value);
       const cupo = Number(document.getElementById('cupo').value);
       const estado = document.getElementById('estado').value;
+      const mensaje = document.getElementById('guardarMensaje');
+      mensaje.classList.add('oculto');
 
       if (!fecha || !hora || !lugar) {
         alert('Completá fecha, hora y lugar');
         return;
       }
 
-      await partidoRef.update({ fecha, hora, lugar, costo, cupo, estado });
-      alert('Partido actualizado');
+      try {
+        await partidoRef.set({ fecha, hora, lugar, costo, cupo, estado }, { merge: true });
+        mensaje.textContent = '✅ Partido actualizado correctamente';
+        mensaje.className = 'exito';
+        mensaje.classList.remove('oculto');
+        setTimeout(() => mensaje.classList.add('oculto'), 3000);
+      } catch (error) {
+        console.error('Error al guardar:', error);
+        mensaje.textContent = '❌ Error al guardar: ' + error.message;
+        mensaje.className = 'error';
+        mensaje.classList.remove('oculto');
+      }
     });
 
     // Agregar jugador manual
@@ -246,27 +410,38 @@
         return;
       }
 
-      // ID aleatorio para el nuevo jugador
       const nuevoId = 'manual-' + Date.now();
-      await inscriptosRef.doc(nuevoId).set({
-        nombre,
-        telefono,
-        estado: 'activo',
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      document.getElementById('nuevoNombre').value = '';
-      document.getElementById('nuevoTelefono').value = '';
+      try {
+        await inscriptosRef.doc(nuevoId).set({
+          nombre,
+          telefono,
+          estado: 'activo',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById('nuevoNombre').value = '';
+        document.getElementById('nuevoTelefono').value = '';
+      } catch (error) {
+        alert('Error al agregar: ' + error.message);
+      }
     });
 
     // Cambiar estado (activo/baja)
     window.cambiarEstado = async (id, nuevoEstado) => {
-      await inscriptosRef.doc(id).update({ estado: nuevoEstado });
+      try {
+        await inscriptosRef.doc(id).update({ estado: nuevoEstado });
+      } catch (error) {
+        alert('Error al cambiar estado: ' + error.message);
+      }
     };
 
     // Eliminar jugador
     window.eliminarJugador = async (id) => {
       if (!confirm('¿Seguro que querés eliminar este jugador?')) return;
-      await inscriptosRef.doc(id).delete();
+      try {
+        await inscriptosRef.doc(id).delete();
+      } catch (error) {
+        alert('Error al eliminar: ' + error.message);
+      }
     };
   </script>
 </body>
