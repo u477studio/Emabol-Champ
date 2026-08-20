@@ -132,12 +132,13 @@
       </div>
 
       <!-- Agregar jugador manual -->
-      <div class="tarjeta">
-        <h2>Agregar jugador</h2>
-        <input type="text" id="nuevoNombre" placeholder="Nombre">
-        <input type="tel" id="nuevoTelefono" placeholder="Teléfono (opcional)">
-        <button class="boton boton-verde" id="btnAgregarJugador">Agregar</button>
-      </div>
+<div class="tarjeta">
+  <h2>Agregar jugador</h2>
+  <input type="text" id="nuevoNombre" placeholder="Nombre">
+  <input type="tel" id="nuevoTelefono" placeholder="Teléfono (opcional)">
+  <button class="boton boton-verde" id="btnAgregarJugador">Agregar</button>
+  <button class="boton boton-rojo" id="btnLimpiarInscriptos" style="margin-top:8px;">Limpiar todos los inscriptos</button>
+</div>
 
       <!-- Lista de inscriptos -->
       <div class="tarjeta">
@@ -519,6 +520,39 @@
         alert('Error al agregar: ' + error.message);
       }
     });
+
+    // Limpiar todos los inscriptos
+document.getElementById('btnLimpiarInscriptos').addEventListener('click', async () => {
+  if (!confirm('⚠️ ¿Seguro que querés eliminar TODOS los inscriptos? Esta acción no se puede deshacer.')) return;
+  
+  try {
+    // Obtener todos los documentos de la subcolección inscriptos
+    const snapshot = await inscriptosRef.get();
+    
+    if (snapshot.empty) {
+      alert('No hay inscriptos para eliminar.');
+      return;
+    }
+    
+    // Mostrar progreso
+    const totalDocs = snapshot.size;
+    let eliminados = 0;
+    
+    // Crear array de promesas para eliminar en paralelo
+    const promesas = [];
+    snapshot.forEach((doc) => {
+      promesas.push(doc.ref.delete());
+    });
+    
+    // Ejecutar todas las eliminaciones
+    await Promise.all(promesas);
+    
+    alert(`✅ Se eliminaron ${totalDocs} inscriptos correctamente.`);
+  } catch (error) {
+    console.error('Error al limpiar inscriptos:', error);
+    alert('❌ Error al limpiar inscriptos: ' + error.message);
+  }
+});
 
     // Cambiar estado (activo/baja)
     window.cambiarEstado = async (id, nuevoEstado) => {
