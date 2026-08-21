@@ -140,10 +140,11 @@ const firebaseConfig = {
       const estadoTexto = estado === 'cerrado' ? '🔒 Cerrado' : '🟢 Abierto';
 
       document.getElementById('infoPartido').innerHTML = `
-        <div class="fecha">📅 ${partidoActual.fecha || 'Fecha sin definir'} - ${partidoActual.hora || 'Hora sin definir'}</div>
-        <p>📍 ${partidoActual.lugar || 'Lugar sin definir'}</p>
-        <p>💰 $${partidoActual.costo || 0} por jugador</p>
-        <p>Estado: <strong>${estadoTexto}</strong></p>
+      <div class="fecha">📅 ${partidoActual.fecha} - ${partidoActual.hora}</div>
+      <p>📍 ${partidoActual.lugar}</p>
+      <p>💰 $${partidoActual.costo || 0} por jugador</p>
+      <p>💸 Alias para transferir: <strong>${partidoActual.aliasPago || 'CASANAKED'}</strong></p>
+      <p>Estado: <strong>${estadoTexto}</strong></p>
       `;
 
       actualizarBoton();
