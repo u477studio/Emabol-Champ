@@ -119,6 +119,8 @@
         <input type="text" id="lugar">
         <label>Costo por jugador</label>
         <input type="number" id="costo">
+        <label>Alias para transferencia</label>
+        <input type="text" id="aliasPago" placeholder="Ej: CASANAKED">
         <label>Cupo</label>
         <input type="number" id="cupo">
         <label>Estado</label>
@@ -250,6 +252,7 @@
           document.getElementById('lugar').value = partidoActual.lugar || '';
           document.getElementById('costo').value = partidoActual.costo || 0;
           document.getElementById('cupo').value = partidoActual.cupo || 18;
+          document.getElementById('aliasPago').value = partidoActual.aliasPago || 'CASANAKED';
           document.getElementById('estado').value = partidoActual.estado || 'abierto';
           actualizarSeccionEquipos();
         }
@@ -447,6 +450,7 @@
       const cupo = Number(document.getElementById('cupo').value);
       const estado = document.getElementById('estado').value;
       const mensaje = document.getElementById('guardarMensaje');
+      const aliasPago = document.getElementById('aliasPago').value.trim();
       mensaje.classList.add('oculto');
 
       if (!fecha || !hora || !lugar) {
@@ -455,7 +459,7 @@
       }
 
       try {
-        await partidoRef.set({ fecha, hora, lugar, costo, cupo, estado }, { merge: true });
+        await partidoRef.set({ fecha, hora, lugar, costo, cupo, estado, aliasPago }, { merge: true });
         mensaje.textContent = '✅ Partido actualizado correctamente';
         mensaje.className = 'exito';
         mensaje.classList.remove('oculto');
