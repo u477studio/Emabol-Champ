@@ -85,13 +85,10 @@
       <button class="boton boton-baja" id="btnBaja" style="display:none;">Darme de baja</button>
     </div>
 
-    <!-- Listas de titulares y suplentes -->
+    <!-- Lista única de anotados -->
     <div class="tarjeta">
-      <h2>Titulares (<span id="cantidadTitulares">0</span>)</h2>
-      <ul class="lista" id="listaTitulares"></ul>
-
-      <h2>Suplentes (<span id="cantidadSuplentes">0</span>)</h2>
-      <ul class="lista" id="listaSuplentes"></ul>
+      <h2>Jugadores anotados (<span id="cantidad">0</span>)</h2>
+      <ul class="lista" id="listaInscriptos"></ul>
     </div>
   </div>
 
@@ -101,14 +98,14 @@
 
   <script>
     // ⚠️ PEGÁ ACA TU CONFIGURACIÓN DE FIREBASE
-const firebaseConfig = {
-  apiKey: "AIzaSyDs7dUZPdqYvjI7AjYx0RoDoS3X1auaN3A",
-  authDomain: "emabol-stars.firebaseapp.com",
-  projectId: "emabol-stars",
-  storageBucket: "emabol-stars.firebasestorage.app",
-  messagingSenderId: "908515702679",
-  appId: "1:908515702679:web:583944869a7dd163d276d2"
-};
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROJECT.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_PROJECT.appspot.com",
+      messagingSenderId: "TU_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -140,11 +137,11 @@ const firebaseConfig = {
       const estadoTexto = estado === 'cerrado' ? '🔒 Cerrado' : '🟢 Abierto';
 
       document.getElementById('infoPartido').innerHTML = `
-      <div class="fecha">📅 ${partidoActual.fecha} - ${partidoActual.hora}</div>
-      <p>📍 ${partidoActual.lugar}</p>
-      <p>💰 $${partidoActual.costo || 0} por jugador</p>
-      <p>💸 Alias para transferir: <strong>${partidoActual.aliasPago || 'CASANAKED'}</strong></p>
-      <p>Estado: <strong>${estadoTexto}</strong></p>
+        <div class="fecha">📅 ${partidoActual.fecha || 'Fecha sin definir'} - ${partidoActual.hora || 'Hora sin definir'}</div>
+        <p>📍 ${partidoActual.lugar || 'Lugar sin definir'}</p>
+        <p>💰 $${partidoActual.costo || 0} por jugador</p>
+        <p>💸 Alias para transferir: <strong>${partidoActual.aliasPago || 'CASANAKED'}</strong></p>
+        <p>Estado: <strong>${estadoTexto}</strong></p>
       `;
 
       actualizarBoton();
@@ -153,51 +150,35 @@ const firebaseConfig = {
     // ---------- ESCUCHAR INSCRIPTOS ----------
     inscriptosRef.onSnapshot((snapshot) => {
       const activos = [];
+
       snapshot.forEach((doc) => {
         const data = doc.data();
         if (data.estado === 'activo') {
-          // Normalizamos timestamp para ordenar
-          let ts = data.timestamp;
-          if (ts && typeof ts.toMillis === 'function') {
-            ts = ts.toMillis();
-          } else if (!ts) {
-            ts = Number.MAX_SAFE_INTEGER; // Sin timestamp al final
-          }
-          activos.push({ id: doc.id, nombre: data.nombre, telefono: data.telefono || '', timestamp: ts });
+          activos.push({
+            id: doc.id,
+            nombre: data.nombre,
+            telefono: data.telefono || ''
+          });
         }
       });
 
-      // Ordenar por timestamp ascendente (más antiguo primero)
-      activos.sort((a, b) => a.timestamp - b.timestamp);
+      // Ordenar alfabéticamente por nombre (ignora mayúsculas/minúsculas)
+      activos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
 
-      const cupo = partidoActual?.cupo || 18;
-      const titulares = activos.slice(0, cupo);
-      const suplentes = activos.slice(cupo);
+      const lista = document.getElementById('listaInscriptos');
+      lista.innerHTML = '';
 
-      const listaTitulares = document.getElementById('listaTitulares');
-      const listaSuplentes = document.getElementById('listaSuplentes');
-      listaTitulares.innerHTML = '';
-      listaSuplentes.innerHTML = '';
-
-      // Llenar titulares
-      titulares.forEach((jugador) => {
+      activos.forEach((jugador) => {
         const li = document.createElement('li');
         li.innerHTML = `<span>${jugador.nombre}</span>${jugador.telefono ? `<small>${jugador.telefono}</small>` : ''}`;
-        listaTitulares.appendChild(li);
+        lista.appendChild(li);
       });
 
-      // Llenar suplentes
-      suplentes.forEach((jugador) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span>${jugador.nombre}</span>${jugador.telefono ? `<small>${jugador.telefono}</small>` : ''} <em>(suplente)</em>`;
-        listaSuplentes.appendChild(li);
-      });
+      document.getElementById('cantidad').textContent = activos.length;
 
-      document.getElementById('cantidadTitulares').textContent = titulares.length;
-      document.getElementById('cantidadSuplentes').textContent = suplentes.length;
-
+      const cupo = partidoActual?.cupo || 18;
       const total = activos.length;
-      document.getElementById('cupo').textContent = `Cupo: ${titulares.length}/${cupo} (${total} anotados)`;
+      document.getElementById('cupo').textContent = `Cupo: ${total}/${cupo} (${total} anotados)`;
 
       actualizarBoton();
     });
